@@ -43,7 +43,6 @@ set laststatus=2
 set makeprg=msbuild\ /nologo\ /v:q\ /property:GenerateFullPaths=true,Configuration=Debug,Platform=x86
 set mouse=
 set shiftwidth=3
-set noshowmode
 set smartindent
 set softtabstop=3
 set statusline=<%n>\ %F\ %m\ (%l/%L)
@@ -59,45 +58,34 @@ if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
 set shortmess=aoO
-badd +1 keyboard.cpp
-badd +1 keyWatcher.cpp
-badd +199 main.cpp
-badd +400 util.cpp
-badd +75 win.cpp
-badd +1 keyboard.h
-badd +14 keyWatcher.h
-badd +79 main.h
-badd +48 stdafx.h
+badd +206 broadcaster.cpp
+badd +42 dispatcher.cpp
+badd +283 main.cpp
+badd +1 util.cpp
+badd +64 win.cpp
+badd +126 broadcaster.h
+badd +24 dispatcher.h
+badd +16 main.h
+badd +1 stdafx.h
 badd +1 targetver.h
-badd +139 util.h
-badd +25 win.h
-badd +19 ..\_mandui\main.cpp
-badd +46 debug\log.txt
-badd +1 Debug\config.txt
-badd +295 \Program\ Files\ (x86)\Windows\ Kits\10\Include\10.0.18362.0\um\AclAPI.h
-badd +66 \Program\ Files\ (x86)\Windows\ Kits\10\Include\10.0.18362.0\um\cfapi.h
-badd +137 \Program\ Files\ (x86)\Windows\ Kits\10\Include\10.0.18362.0\um\sqltypes.h
-badd +80 \Program\ Files\ (x86)\Windows\ Kits\10\Include\10.0.18362.0\um\tpcshrd.h
-badd +951 \Program\ Files\ (x86)\Windows\ Kits\10\Include\10.0.18362.0\um\vds.h
-badd +712 \Program\ Files\ (x86)\Windows\ Kits\10\Include\10.0.18362.0\um\vdshwprv.h
-badd +4639 \Program\ Files\ (x86)\Windows\ Kits\10\Include\10.0.18362.0\um\wingdi.h
-badd +359 ..\EchoChars\util.cpp
-badd +70 ..\EchoChars\win.cpp
+badd +88 util.h
+badd +1 win.h
+badd +145 ..\_mand\keyboard.h
 argglobal
 silent! argdel *
-$argadd keyboard.cpp
-$argadd keyWatcher.cpp
+$argadd broadcaster.cpp
+$argadd dispatcher.cpp
 $argadd main.cpp
 $argadd util.cpp
 $argadd win.cpp
-$argadd keyboard.h
-$argadd keyWatcher.h
+$argadd broadcaster.h
+$argadd dispatcher.h
 $argadd main.h
 $argadd stdafx.h
 $argadd targetver.h
 $argadd util.h
 $argadd win.h
-edit main.cpp
+edit broadcaster.cpp
 set splitbelow splitright
 wincmd _ | wincmd |
 split
@@ -110,7 +98,6 @@ set winminheight=1 winheight=1 winminwidth=1 winwidth=1
 exe '1resize ' . ((&lines * 59 + 36) / 72)
 exe '2resize ' . ((&lines * 10 + 36) / 72)
 argglobal
-if bufexists('main.cpp') | buffer main.cpp | else | edit main.cpp | endif
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -227,12 +214,12 @@ set nowrap
 setlocal nowrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 221 - ((50 * winheight(0) + 29) / 59)
+let s:l = 117 - ((33 * winheight(0) + 29) / 59)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-221
-normal! 024|
+117
+normal! 0
 wincmd w
 argglobal
 enew

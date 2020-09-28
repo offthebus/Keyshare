@@ -3,25 +3,20 @@
 
 #include "win.h"
 #include "util.h"
+#include "dispatcher.h"
 
-//---------------------------------------------------------------------------
-typedef std::vector<const char*> CMDLINE;
-typedef int (*CMDHANDLER)(CMDLINE& cmdLine);
-typedef std::unordered_map<char,CMDHANDLER> DISPATCHER;
+int onHelp(Dispatcher::CMDLINE&);
+int onQuit(Dispatcher::CMDLINE&);
+int onInfo(Dispatcher::CMDLINE&);
+int onRename(Dispatcher::CMDLINE&);
+int onScan(Dispatcher::CMDLINE&);
+int onLayout(Dispatcher::CMDLINE&);
+int onMouse(Dispatcher::CMDLINE&);
+int onKeyboard(Dispatcher::CMDLINE&);
 
-//---------------------------------------------------------------------------
-void injectSetMaster();
-int onHelp(CMDLINE&);
-int onQuit(CMDLINE&);
-int onList(CMDLINE&);
-int onRename(CMDLINE&);
-int onScan(CMDLINE&);
-void initDispatcher();
-int dispatch(CMDLINE&);
-DWORD WINAPI rawInputThread(LPVOID param);
+void printInfo(HWND hwnd, const char* extra=0);
 BOOL CALLBACK enumWindowsProc(HWND hwnd, LPARAM lParam);
 DWORD WINAPI scanWindowsThread(LPVOID param);
-int broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 ////---------------------------------------------------------------------------
 //class Config
@@ -42,13 +37,12 @@ struct Globals
 {
 	static const char* APPNAME;
 
-	Win* pWin;
+	enum { H_QUIT, H_SCAN, H_NUM_EVENTS };
+	HANDLE hEvents[H_NUM_EVENTS];
+
+	HANDLE hThread;
+	HWND toBeRenamed;
 	bool scanning;
-	bool broadcast;
-	bool quit;
-	DISPATCHER dispatcher;
-	HWND toBeRenamed, master, slave;
-//	Config* script;
 
 	static Globals& getInstance() {
 		static Globals instance;
@@ -60,18 +54,13 @@ struct Globals
 		void operator=(const Globals&) = delete;
 
 	Globals() {
-		pWin = 0;
-		quit = false;
 		scanning = false;
 		toBeRenamed = 0;
-		master = 0; 
-		slave = 0;
-		broadcast = true;
-//		script = 0;
+		util::zeroMem(hEvents);
+		hThread = 0;
 	};
 
 	~Globals() {
-//		delete script;
 	}
 
 

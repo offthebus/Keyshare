@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "main.h"
+#include "broadcaster.h"
 
 const char* Globals::APPNAME = "Keyshare";
 
@@ -8,161 +9,59 @@ const char* Globals::APPNAME = "Keyshare";
 //---------------------------------------------------------------------------
 int main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	//TODO: 
-	// make scan manual
-	// turn broadcast off/on
-	// permit multiple slaves
-	// send Ctrl+click as Rbutton down/up for ctm
+	//TODO: targeting macro
+	// zoom slaves
+	
+	Dispatcher dispatcher;
+	dispatcher.push_back('q',onQuit);	
+	dispatcher.push_back('h',onHelp);	
+	dispatcher.push_back('r',onRename);
+	dispatcher.push_back('s',onScan);
+	dispatcher.push_back('k',onKeyboard);
+	dispatcher.push_back('m',onMouse);
+	dispatcher.push_back('i',onInfo);
+	dispatcher.push_back('l',onLayout);
 
-	char inp[256];
-//	char* inp;
-
-//	globals.script = new Config;
-//	if (!globals.script->valid) {
-//		printf("Failed to load script\n");
-//		return 0;
-//	}
+	Broadcaster& bc = Broadcaster::getInstance();
+	bc.enableKeyboard(false);
+	bc.enableMouse(false);
 
 	Globals& globals = Globals::getInstance(); 
+	globals.hEvents[Globals::H_SCAN] = CreateEvent(0,TRUE,FALSE,"ScanEvent");
+	globals.hEvents[Globals::H_QUIT] = CreateEvent(0,TRUE,FALSE,"QuitEvent");
+	globals.hThread = CreateThread( NULL, 0, scanWindowsThread, 0, 0, 0 );
+	globals.scanning = false;
 
-	initDispatcher();
+	dispatcher.execute('k');
+	dispatcher.execute('s');
+	dispatcher.mainloop();
 
-	HANDLE hThreads[2];
-	hThreads[0] = CreateThread( NULL, 0, rawInputThread, (void*)hInstance, 0, 0 );
-	hThreads[1] = CreateThread( NULL, 0, scanWindowsThread, 0, 0, 0 );
-
-	printf("Keyshare\n");
-	printf("Broadcast: ON\n");
-
-	while ( printf("> "), gets_s(inp,sizeof(inp))) {
-		char* context = 0;
-		char* token = strtok_s(inp," ",&context);
-		CMDLINE args;
-		while (token) {
-			args.push_back(token);
-			token = strtok_s(NULL," ",&context);
-		}
-		if (dispatch(args) == 0) {
-			break;
-		}
-	}
-
-	// signal quit and wait for threads to exit
-	globals.quit = true;
-	if ( WAIT_TIMEOUT == WaitForMultipleObjects(2,hThreads,TRUE,5000)) {
-		printf("Gave up waiting for threads to exit\n");
-	}
-
-	printf("Keyshare exit\n");
-	Sleep(1000);
 	ExitProcess(0);
 }
 //---------------------------------------------------------------------------
-// INJECTSETMASTER
+// PRINTINFO
 //---------------------------------------------------------------------------
-void injectRename()
+void printInfo(HWND hwnd, const char* extra/*==0*/)
 {
-	static struct { WORD vKey, scancode; } cmd = { 0x52, 0x13 }, newline = {VK_RETURN, 0x1C};
-	static INPUT_RECORD input[2] = {
-		{ KEY_EVENT, { TRUE,		0, cmd.vKey, cmd.scancode, {'r'}, 0 } },
-		{ KEY_EVENT, { TRUE,		0, newline.vKey, cmd.scancode, {newline.vKey}, 0 } },
-	};
-
-	DWORD count = 0;
-	HANDLE hConsoleIn = GetStdHandle(STD_INPUT_HANDLE);
-	WriteConsoleInput(hConsoleIn,input,2,&count);
-}
-//---------------------------------------------------------------------------
-// BROADCAST
-//---------------------------------------------------------------------------
-int broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	static RAWINPUT raw;
-	static UINT size = sizeof(raw);
-	static USHORT& scanCode = raw.data.keyboard.MakeCode;
-	static USHORT& vKey = raw.data.keyboard.VKey;
-	static USHORT& flags = raw.data.keyboard.Flags;
-	static UINT& msg = raw.data.keyboard.Message;
-	static bool ctrl=false;
-	static Globals& globals = Globals::getInstance();
-
-	GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (LPVOID)&raw, &size, sizeof(RAWINPUTHEADER));
-	HWND curActiveWindow = GetForegroundWindow();
-
-	if (vKey==VK_CONTROL) {
-		ctrl=flags==0;
-	}
-
-	// hotkey Ctrl+] rename active window
-	if (ctrl && vKey==VK_OEM_6 && flags==0) {
-		globals.toBeRenamed = curActiveWindow;
-		SetForegroundWindow(GetConsoleWindow());
-		injectRename();
-		return 0;
-	}
-
-	if (curActiveWindow == globals.master) {
-		if (vKey<VK_SHIFT || vKey>VK_F12 || (vKey>=VK_LWIN && vKey<=VK_SLEEP)) {
-			return 0;
-		}
-		switch (vKey) {
-			case VK_PAUSE: case VK_CAPITAL: case VK_ESCAPE: case VK_SELECT: case VK_PRINT: case VK_SNAPSHOT: 
-				return 0;
-		};
-
-		UINT msg = flags==0?WM_KEYDOWN:flags==1?WM_KEYUP:0;
-		if (msg) {
-			LPARAM lparam = msg==WM_KEYDOWN ? 0x4000000|(scanCode<<16) : 0xC0000000|(scanCode<<16);
-			PostMessage(globals.slave,msg,(WPARAM)vKey,lparam);
-		}
-	}
-
-	return 0; 
-}
-//---------------------------------------------------------------------------
-// WINAPI RAWINPUTTHREAD
-//---------------------------------------------------------------------------
-DWORD WINAPI rawInputThread(LPVOID param)
-{
-	Globals& globals = Globals::getInstance();
-	globals.pWin = new Win((HINSTANCE)param,globals.APPNAME,0,0,10,10,0);
-	globals.pWin->addMsgHandler(WM_INPUT,broadcast);
-
-	RAWINPUTDEVICE rid = { HID_USAGE_PAGE_GENERIC, HID_USAGE_GENERIC_KEYBOARD, RIDEV_INPUTSINK|RIDEV_NOHOTKEYS, globals.pWin->hwnd };
-
-	if (RegisterRawInputDevices(&rid,1,sizeof(RAWINPUTDEVICE))) {
-		MSG msg;
-		while (!globals.quit) {
-			while ( PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) == TRUE) {
-				if (GetMessage(&msg, NULL, 0, 0)) {
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-				} 
-			}
-			Sleep(1);
-		}
-	}
-	DestroyWindow(globals.pWin->hwnd);
-	delete globals.pWin;
-	globals.pWin = 0;
-	printf("Input thread terminated\n");
-	ExitThread(0);
+	char name[64];
+	char classname[64];
+	GetWindowText(hwnd,name,_countof(name));
+	GetClassName(hwnd,classname,_countof(classname));
+	printf("%shandle=0x%08X, name=%s, class=%s\n", extra?extra:"", (UINT)hwnd, name, classname);
 }
 //---------------------------------------------------------------------------
 // CALLBACK ENUMWINDOWSPROC
 //---------------------------------------------------------------------------
 BOOL CALLBACK enumWindowsProc(HWND _hwnd, LPARAM lParam)
 {
-	Globals& globals = Globals::getInstance();
+	Broadcaster& bc = Broadcaster::getInstance();
 	char buf[256];
 	GetWindowText(_hwnd,buf,_countof(buf));
 	_strlwr_s(buf,_countof(buf));
-	if (!strncmp(buf, "master", 6) && _hwnd!=globals.master) {
-		globals.master = _hwnd;
-		printf("found master\n> ");
-	} else if (!strncmp(buf, "slave", 5) && _hwnd!=globals.slave) {
-		globals.slave = _hwnd;
-		printf("found slave\n> ");
+	if (!strncmp(buf, "master", 6)) {
+		bc.push_back(_hwnd,true);
+	} else if (!strncmp(buf, "slave", 5)) {
+		bc.push_back(_hwnd);
 	}
 	return TRUE;
 }
@@ -172,98 +71,144 @@ BOOL CALLBACK enumWindowsProc(HWND _hwnd, LPARAM lParam)
 DWORD WINAPI scanWindowsThread(LPVOID param)
 {
 	Globals& globals = Globals::getInstance();
-	globals.scanning = true;		
 
-	globals.master = globals.slave = 0;
-
-	while (!globals.quit) {
-		EnumWindows(enumWindowsProc,0);
-		Sleep(1000);
+	while ( int iEvent = WaitForMultipleObjects(Globals::H_NUM_EVENTS, globals.hEvents, FALSE, INFINITE) - WAIT_OBJECT_0) {
+		if ( iEvent == Globals::H_QUIT ) {
+			break;
+		} else if ( iEvent == Globals::H_SCAN ) {
+			printf("scanning for master/slave windows ...\n");
+			globals.scanning = true;		
+			Broadcaster::getInstance().clear();
+			while (globals.scanning) {
+				EnumWindows(enumWindowsProc,0);
+				Sleep(1000);
+			}
+		}
 	}
 
-	globals.scanning = false;
 	printf("Scan thread terminated\n");
 	ExitThread(0);
 }
 //---------------------------------------------------------------------------
-// INITDISPATCHER
+// ONLAYOUT
 //---------------------------------------------------------------------------
-void initDispatcher()
+int onLayout(Dispatcher::CMDLINE&)
 {
-	Globals& globals = Globals::getInstance();
+	Globals& g = Globals::getInstance();
+	Broadcaster& bc = Broadcaster::getInstance();
+	bc.windowsReadyToZoom(false);
 
-	globals.dispatcher.insert(DISPATCHER::value_type('q',onQuit));	
-	globals.dispatcher.insert(DISPATCHER::value_type('h',onHelp));	
-	globals.dispatcher.insert(DISPATCHER::value_type('r',onRename));
-	globals.dispatcher.insert(DISPATCHER::value_type('s',onScan));
+	if (bc.master()) {
+		util::Screen screen;
+
+		// master occupies left hand 2/3 of the screen
+		int x = 0, y=0, w=screen.w*2/3, h=screen.h;
+		
+		// adjust for taskbar
+		switch (screen.getTaskBarPosition()) {
+			case util::Screen::TB_LEFT: {
+				x = screen.tb.rc.right;
+				w -= screen.tb.rc.right;
+				break;
+			}
+			case util::Screen::TB_TOP: {
+				y = screen.tb.rc.bottom;
+				h -= screen.tb.rc.bottom;
+				break;
+			}
+			case util::Screen::TB_BOTTOM: {
+				h -= screen.tb.rc.bottom-screen.tb.rc.top;
+				break;
+			}
+		}
+
+		// set master
+		SetWindowPos(bc.master(),NULL,x,y,w,h,SWP_NOZORDER|SWP_SHOWWINDOW);
+		
+		const Broadcaster::WINDOWLIST& slaves = bc.slaves();
+		if (slaves.size()) {
+			x += w; // slaves x from RH edge of master, y same as master
+			h /= slaves.size(); // divide master height between slaves
+			w = screen.w/3; // slaves occupy right hand third of screen
+
+			// adjust for taskbar
+			if (screen.getTaskBarPosition() == screen.TB_RIGHT) {
+				w -= screen.tb.rc.right-screen.tb.rc.left;
+			}
+
+			// set slave(s)
+			for (size_t i=0; i<slaves.size(); ++i) {
+				SetWindowPos(slaves[i].hwnd,NULL,x,y,w,h,SWP_NOZORDER|SWP_SHOWWINDOW);
+				GetWindowRect(slaves[i].hwnd,(LPRECT)&slaves[i].pos);
+				y += h;
+			}
+		}
+		bc.windowsReadyToZoom(true);
+	}
+	return 1;
 }
 //---------------------------------------------------------------------------
-// DISPATCH
+// ONKEYBOARD
 //---------------------------------------------------------------------------
-int dispatch(CMDLINE& args)
+int onKeyboard(Dispatcher::CMDLINE& cmdLine) 
 {
-	Globals& globals = Globals::getInstance();
-
-	if (args.size()) { 
-		DISPATCHER::iterator iter = globals.dispatcher.find(tolower(args[0][0]));
-		if (iter != globals.dispatcher.end()) {
-			return (iter->second)(args);
-		} else {
-			printf("%s is not a recognised command\n",args[0]);
-		}
-	}
+	Broadcaster& bc = Broadcaster::getInstance();
+	printf("broadcast keyboard %s\n", bc.enableKeyboard(!bc.isKeyboardEnabled()) ? "stopped": "started" );
+	return 1;
+}
+//---------------------------------------------------------------------------
+// ONMOUSE
+//---------------------------------------------------------------------------
+int onMouse(Dispatcher::CMDLINE& cmdLine) 
+{
+	Broadcaster& bc = Broadcaster::getInstance();
+	printf("broadcast mouse %s\n", bc.enableMouse(!bc.isMouseEnabled()) ? "stopped": "started" );
 	return 1;
 }
 //---------------------------------------------------------------------------
 // ONSCAN
 //---------------------------------------------------------------------------
-int onScan(CMDLINE& cmdLine)
+int onScan(Dispatcher::CMDLINE& cmdLine)
 {
-	static bool broadcastPrevState;
 	Globals& globals = Globals::getInstance();
-	bool ok = false;
 
-	if (cmdLine.size() == 2 ) {
-		if ( !_stricmp(cmdLine[1],"start")) {
-			printf("> scanning ...\n");
-			broadcastPrevState = globals.broadcast;
-			globals.broadcast = false;
-			if (broadcastPrevState == true) {
-				printf("> Broadcast: OFF\n");
-			}
-			ok = true;
-		} else if (!_stricmp(cmdLine[1],"stop")) {
-			printf("> ending scan\n");
-			globals.broadcast = broadcastPrevState;
-			if (globals.broadcast) {
-				printf("> Broadcast: ON\n");
-			}
-			ok = true;
-		}
+	if (!globals.scanning) {
+		Broadcaster::getInstance().clear();
+		SetEvent(globals.hEvents[Globals::H_SCAN]);
+		globals.scanning = true;
+	} else {
+		ResetEvent(globals.hEvents[Globals::H_SCAN]);
+		globals.scanning = false;
 	}
 
-	if (!ok) {
-		printf("> Format of command is: s(can) {start|stop}\n");
-	}
+	printf("scan %s\n", globals.scanning ? "started" : "stopped" );
 
 	return 1;
 }
 //---------------------------------------------------------------------------
 // ONRENAME
 //---------------------------------------------------------------------------
-int onRename(CMDLINE& args)
+int onRename(Dispatcher::CMDLINE& args)
 {
-	Globals& globals = Globals::getInstance();
+	HWND toBeRenamed = Broadcaster::getInstance().toBeRenamed();
 	char inp[64];
 	
-	SetForegroundWindow(GetConsoleWindow());
-	printf("> Enter name: ");
+	if (!toBeRenamed) {
+		return 1;
+	}
+
+	HWND console = GetConsoleWindow();
+	SetWindowPos(console,HWND_TOP,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE);
+	SetForegroundWindow(console);
+
+	printInfo(toBeRenamed,"* Rename window: " );
+	printf("* Enter name: ");
 	gets_s(inp,sizeof(inp));
 	if (*inp) {
-		SetWindowText(globals.toBeRenamed,inp);
-		printf("> done\n");
+		SetWindowText(toBeRenamed,inp);
+		printf("* done\n");
 	} else {
-		printf("> no input - cancelled\n");
+		printf("* no input - cancelled\n");
 	}
 
 	return 1;
@@ -271,15 +216,36 @@ int onRename(CMDLINE& args)
 //---------------------------------------------------------------------------
 // ONQUIT
 //---------------------------------------------------------------------------
-int onQuit(CMDLINE& cmdLine)
+int onQuit(Dispatcher::CMDLINE& cmdLine)
 {
+	Globals& globals = Globals::getInstance();
+	SetEvent(globals.hEvents[Globals::H_QUIT]);
+	globals.scanning = false;
+	Broadcaster::getInstance().terminate();
+	WaitForSingleObject(globals.hThread,5000);
+	printf("Keyshare exit\n");
+	Sleep(500);
 	return 0;
 }
 //---------------------------------------------------------------------------
-// ONLIST
+// ONINFO
 //---------------------------------------------------------------------------
-int onList(CMDLINE& cmdLine)
+int onInfo(Dispatcher::CMDLINE& cmdLine)
 {
+	Broadcaster& bc = Broadcaster::getInstance();
+
+	printf("Application state: broadcast keyboard %s, mouse %s, scan is %s\n", 
+		bc.isKeyboardEnabled()?"ON":"OFF", bc.isMouseEnabled()?"ON":"OFF",Globals::getInstance().scanning?"ON":"OFF");
+	if (bc.master()) {
+		printInfo(bc.master(),"Master: ");
+	} else {
+		printf("No master window\n");
+	}
+	const Broadcaster::WINDOWLIST& slaves = bc.slaves();
+	for (size_t i=0; i<slaves.size(); ++i) {
+		printInfo(slaves[i].hwnd,"Slave: ");
+	}
+
 	return 1;
 }
 ////---------------------------------------------------------------------------
@@ -301,10 +267,104 @@ int onList(CMDLINE& cmdLine)
 //---------------------------------------------------------------------------
 // ONHELP
 //---------------------------------------------------------------------------
-int onHelp(CMDLINE& cmdLine) 
+int onHelp(Dispatcher::CMDLINE& cmdLine) 
 {
+	printf("List of Commands:\n");
+	printf("  s(can)        toggle scan\n"
+			 "  k(eyboard)    toggle broadcasting keyboard\n"
+			 "  m(ouse)       toggle broadcasting mouse\n"
+			 "  i(nfo)        list app state and known windows\n"
+			 "  l(ayout)      layout windows\n"
+			 "  h(elp)        print this info\n"
+			 "  q(uit)        exit application\n");
+	printf("List of Hotkeys:\n");
+	printf("  Ctrl+]        rename active window\n"
+			 "  Ctrl+=        toggle echo\n"
+			 "  `	(backtick)  zoom slave under cursor\n");
+
 	return 1;
 }
+////---------------------------------------------------------------------------
+//// INITFILTER
+////---------------------------------------------------------------------------
+//void initFilter()
+//{
+//	Globals& g = Globals::getInstance();
+//
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_TAB,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_SHIFT,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_CONTROL,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_MENU,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_SPACE,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_0,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_1,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_2,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_3,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_4,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_5,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_6,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_7,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_8,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_9,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_Q,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_E,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_R,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_T,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_Y,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_U,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_I,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_O,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_G,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_H,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_J,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_Z,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_X,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_V,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_N,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD0,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD1,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD2,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD3,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD4,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD5,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD6,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD7,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD8,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD9,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_MULTIPLY,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_ADD,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_SEPARATOR,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_SUBTRACT,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_DECIMAL,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_DIVIDE,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F1,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F2,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F3,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F4,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F5,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F6,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F7,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F8,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F9,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F10,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F11,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F12,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_PLUS,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_COMMA,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_MINUS,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_PERIOD,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_1,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_2,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_3,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_4,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_5,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_6,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_7,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_8,1));
+//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_102,1));
+//}
+
 ////---------------------------------------------------------------------------
 //// CONFIG::PARSESCRIPT
 ////---------------------------------------------------------------------------

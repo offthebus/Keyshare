@@ -1,6 +1,9 @@
 #ifndef _H_UTIL
 #define _H_UTIL
 
+EXTERN_C IMAGE_DOS_HEADER __ImageBase; //https://devblogs.microsoft.com/oldnewthing/20041025-00/?p=37483
+#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
+
 #define LOG(fmt,...) util::Log::getInstance().print( __FILE__, __LINE__, fmt, __VA_ARGS__ )
 #define LOGSYS() util::Log::getInstance().sysprint(__FILE__, __LINE__, GetLastError() )
 
@@ -169,7 +172,7 @@ class Log
 	private:
 		
 		Log()
-		: m_enabled(false)
+		: m_enabled(true)
 		{
 			fopen_s(&fpLog,"log.txt","wt");
 		}
@@ -251,6 +254,40 @@ class VirtualKeyDictionary
 		VirtualKeyDictionary(const VirtualKeyDictionary&) = delete;
 		VirtualKeyDictionary();
 		std::map<UINT,const char*> m_dictionary;
+};
+
+//---------------------------------------------------------------------------
+struct Screen
+{
+	int w, h;
+	struct { int x, y; } centre;
+	APPBARDATA tb;
+	enum { TB_LEFT, TB_TOP, TB_RIGHT, TB_BOTTOM };
+
+	int getTaskBarPosition() {
+		if (tb.rc.left == 0 && tb.rc.top == 0 && tb.rc.right < w) {
+			return TB_LEFT;
+		} else if (tb.rc.left == 0 && tb.rc.top == 0 && tb.rc.right == w) {
+			return TB_TOP;
+		} else if (tb.rc.top == 0 && tb.rc.right == w) {
+			return TB_RIGHT;
+		} else {
+			return TB_BOTTOM;
+		}
+	}
+
+	Screen() : w(0), h(0)  {
+		RECT r;
+		GetClientRect(GetDesktopWindow(), &r);
+		w = r.right;
+		h = r.bottom;
+		centre.x = w / 2;
+		centre.y = h / 2;
+
+		zeroMem(tb);
+		tb.cbSize = sizeof(tb);
+		SHAppBarMessage(ABM_GETTASKBARPOS,&tb);
+	}
 };
 
 }; //namespace util
