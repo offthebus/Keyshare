@@ -85,6 +85,9 @@ class Broadcaster
 		Broadcaster();
 		~Broadcaster();
 
+		enum { MMB_DN, MMB_UP, MB4_DN, MB4_UP, NUM_MOUSESTATES };
+		int m_ctrlDown[NUM_MOUSESTATES]; 
+
 		typedef std::unordered_map<unsigned short int,int> BROADCAST_FILTER;
 		BROADCAST_FILTER m_filter;
 

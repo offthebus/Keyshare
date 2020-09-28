@@ -10,6 +10,7 @@ Broadcaster::Broadcaster()
   m_masterWarn(false), m_windowsReadyToZoom(false), m_echo(false) 
 {
 	util::zeroMem(m_keyState);
+	util::zeroMem(m_ctrlDown);
 	initFilter();
 	m_hThread = CreateThread( NULL, 0, inputThread, (LPVOID)this, 0, 0 );
 }
@@ -101,16 +102,40 @@ int Broadcaster::broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		bc.zoomSlave(false);
 	}
 
-	// special: send up arrow, left arrow on middle mouse
-	// through Blizz keymapping sends slaves forward and left/right
-	// with 3 toons, the slaves move up to stand alongide master
+	// MMB=up arrow, Ctrl+MMB = down arrow, MB4 = strafe apart left arrow, Ctrl+MB4 = strafe together, right arrow
 	if (inputType == RIM_TYPEMOUSE ) {
 		unsigned short int& flags = raw.data.mouse.usButtonFlags;
-		UINT msg = (flags&RI_MOUSE_MIDDLE_BUTTON_DOWN) ? WM_KEYDOWN : (flags&RI_MOUSE_MIDDLE_BUTTON_UP) ? WM_KEYUP : 0;
-		if (msg) {
+		int btn = 
+		 flags & RI_MOUSE_MIDDLE_BUTTON_DOWN ? MMB_DN :
+		 flags & RI_MOUSE_MIDDLE_BUTTON_UP ? MMB_UP :
+		 flags & RI_MOUSE_BUTTON_4_DOWN ? MB4_DN :
+		 flags & RI_MOUSE_BUTTON_4_UP ? MB4_UP : NUM_MOUSESTATES;
+			
+		if (btn < bc.NUM_MOUSESTATES) {
 			for (size_t i=0; i<bc.m_slaves.size(); ++i) {
-				PostMessage(bc.m_slaves[i].hwnd,msg,(WPARAM)VK_UP,0);
-				PostMessage(bc.m_slaves[i].hwnd,msg,(WPARAM)VK_LEFT,0);
+				switch (btn) {
+					case MMB_DN: {
+						PostMessage(bc.m_slaves[i].hwnd,WM_KEYDOWN,(WPARAM)bc.down(VK_CONTROL)?VK_DOWN:VK_UP,0);
+						bc.m_ctrlDown[btn] = bc.down(VK_CONTROL);
+						break;
+					}
+					case (MMB_UP): {
+						PostMessage(bc.m_slaves[i].hwnd,WM_KEYUP,(WPARAM)bc.m_ctrlDown[MMB_DN]?VK_DOWN:VK_UP,0);
+						break;
+					}
+					case (MB4_DN): {
+						PostMessage(bc.m_slaves[i].hwnd,WM_KEYDOWN,(WPARAM)bc.down(VK_CONTROL)?VK_RIGHT:VK_LEFT,0);
+						bc.m_ctrlDown[btn] = bc.down(VK_CONTROL);
+						break;
+					}
+					case (MB4_UP): {
+						PostMessage(bc.m_slaves[i].hwnd,WM_KEYUP,(WPARAM)bc.m_ctrlDown[MB4_DN]?VK_RIGHT:VK_LEFT,0);
+						break;
+					}
+				}
+			}
+			if (btn==MMB_UP || btn==MB4_UP) {
+				bc.m_ctrlDown[btn]=0;
 			}
 		}
 	}
@@ -205,8 +230,8 @@ void Broadcaster::zoomSlave(bool zoom)
 					// zoom - this is just for the layout with slaves down RH side of screen
 					util::Screen screen;
 					RECT& pos = m_slaves[i].pos;
-					int w = (pos.right-pos.left)*4/3;
-					int h = (pos.bottom-pos.top)*4/3;
+					int w = (pos.right-pos.left)*3/2;
+					int h = (pos.bottom-pos.top)*3/2;
 					int x = pos.right-w; // grow left
 					int y = pos.top + h < screen.h ? pos.top : pos.bottom-h; // grow down if possible else up
 					SetWindowPos(m_slaves[i].hwnd,HWND_TOPMOST,x,y,w,h,SWP_SHOWWINDOW);

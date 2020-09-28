@@ -272,7 +272,7 @@ int onHelp(Dispatcher::CMDLINE& cmdLine)
 	printf("List of Commands:\n");
 	printf("  s(can)        toggle scan\n"
 			 "  k(eyboard)    toggle broadcasting keyboard\n"
-			 "  m(ouse)       toggle broadcasting mouse\n"
+			 "  m(ouse)       not implemented\n"
 			 "  i(nfo)        list app state and known windows\n"
 			 "  l(ayout)      layout windows\n"
 			 "  h(elp)        print this info\n"
@@ -280,7 +280,12 @@ int onHelp(Dispatcher::CMDLINE& cmdLine)
 	printf("List of Hotkeys:\n");
 	printf("  Ctrl+]        rename active window\n"
 			 "  Ctrl+=        toggle echo\n"
-			 "  `	(backtick)  zoom slave under cursor\n");
+			 "  ` (backtick)  zoom slave under cursor\n");
+	printf("List of mouse mappings:\n");
+	printf("  middle button       up arrow\n"
+			 "  Ctrl+middle button  down arrow\n"
+			 "  button4             left arrow\n"
+			 "  Ctrl+button4        right arrow\n");
 
 	return 1;
 }
