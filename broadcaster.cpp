@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "scanner.h"
 #include "broadcaster.h"
 #include "util.h"
 
@@ -6,8 +7,7 @@
 // ::BROADCAST
 //---------------------------------------------------------------------------
 Broadcaster::Broadcaster() 
-: m_keyboardEnabled(false), m_mouseEnabled(false), m_toBeRenamed(0), m_master(0), 
-  m_masterWarn(false), m_windowsReadyToZoom(false), m_echo(false) 
+: m_keyboardEnabled(false), m_windowsReadyToZoom(false), m_echo(false) 
 {
 	util::zeroMem(m_keyState);
 	util::zeroMem(m_ctrlDown);
@@ -19,35 +19,6 @@ Broadcaster::Broadcaster()
 //---------------------------------------------------------------------------
 Broadcaster::~Broadcaster() {
 	delete m_pWin;
-}
-//---------------------------------------------------------------------------
-// BROADCAST::PUSH_BACK
-//---------------------------------------------------------------------------
-void Broadcaster::push_back(HWND hwnd, bool master/*== false*/) 
-{
-	if (master) {
-		if (m_master) {
-			if (hwnd != m_master && !m_masterWarn) {
-				m_masterWarn=true;
-				printf("You have more than one master window\n");
-			}
-		} else {
-			printf("found master\n");
-			m_master = hwnd;
-		}
-	} else {
-		bool found=false;
-		for (size_t i=0; !found && i<m_slaves.size(); ++i) {
-			found = m_slaves[i].hwnd == hwnd;
-		}
-		if (!found) {
-			printf("found slave\n");
-			m_critSec.lock();
-			WindowDetails win = {hwnd,false,{0,0,0,0}};
-			m_slaves.push_back(win);
-			m_critSec.unlock();
-		}
-	}
 }
 //---------------------------------------------------------------------------
 // BROADCAST
@@ -64,43 +35,48 @@ int Broadcaster::broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	GetRawInputData((HRAWINPUT)lParam, RID_INPUT, (LPVOID)&raw, &size, sizeof(RAWINPUTHEADER));
 	HWND curActiveWindow = GetForegroundWindow();
-	Broadcaster& bc = Broadcaster::getInstance();
+	Broadcaster& self = Broadcaster::getInstance();
 
-	if (bc.m_echo && inputType == RIM_TYPEKEYBOARD) {
-		printf("VKEY: 0x%04X SCAN: 0x%04X FLAGS: 0x%04X\n", vKey,scanCode,flags);
-	}
+//	if (self.m_echo && inputType == RIM_TYPEKEYBOARD) {
+//		printf("VKEY: 0x%04X SCAN: 0x%04X FLAGS: 0x%04X\n", vKey,scanCode,flags);
+//	}
 	
 	// update state
 	if (inputType == RIM_TYPEKEYBOARD) {	
-		if (bc.rawKeyUp(flags)) {
-			bc.m_keyState[vKey] = 0; // key up
-		} else if (bc.rawKeyDown(flags)) {
-			if (bc.m_keyState[vKey]) {
-				bc.m_keyState[vKey] |= 0x80; // repeat
+		if (self.rawKeyUp(flags)) {
+			self.m_keyState[vKey] = 0; // key up
+		} else if (self.rawKeyDown(flags)) {
+			if (self.m_keyState[vKey]) {
+				self.m_keyState[vKey] |= 0x80; // repeat
 			} else {
-				bc.m_keyState[vKey] = 1; // key down 
+				self.m_keyState[vKey] = 1; // key down 
 			}
 		}
 	}
 
-	// Hotkeys 
-	if ( bc.down(VK_CONTROL) && bc.pressed(VK_OEM_6)) {
-		bc.m_toBeRenamed = curActiveWindow;
-		SetForegroundWindow(GetConsoleWindow());
-		bc.injectRename();
-		return 0;
-	}
-	if ( bc.down(VK_CONTROL) && bc.pressed(VK_OEM_PLUS) ) {
-		bc.m_echo = !bc.m_echo;
-		printf("echo %s\n", bc.m_echo ? "ON" : "OFF");
-	}
+//	// Hotkeys 
+//	if ( self.down(VK_CONTROL) && self.pressed(VK_OEM_6)) {
+//		self.m_toBeRenamed = curActiveWindow;
+//		SetForegroundWindow(GetConsoleWindow());
+//		self.injectRename();
+//		return 0;
+//	}
+//	if ( self.down(VK_CONTROL) && self.pressed(VK_OEM_PLUS) ) {
+//		self.m_echo = !self.m_echo;
+//		printf("echo %s\n", self.m_echo ? "ON" : "OFF");
+//	}
 	
 	// zoom key '`'
-	if (bc.pressed(VK_OEM_8)) {
-		bc.zoomSlave(true);
-	} else if (bc.released(VK_OEM_8)) {
-		bc.zoomSlave(false);
+	if (self.pressed(VK_OEM_8)) {
+		static unsigned int pressed = 1;
+		self.zoomSlave(!(++pressed%2));
 	}
+
+	Scanner& scanner = scanner.getInstance();
+	Scanner::WINDOWLIST slaves;
+
+	scanner.lock();
+	scanner.getSlaves(slaves);
 
 	// MMB=up arrow, Ctrl+MMB = down arrow, MB4 = strafe apart left arrow, Ctrl+MB4 = strafe together, right arrow
 	if (inputType == RIM_TYPEMOUSE ) {
@@ -111,77 +87,60 @@ int Broadcaster::broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		 flags & RI_MOUSE_BUTTON_4_DOWN ? MB4_DN :
 		 flags & RI_MOUSE_BUTTON_4_UP ? MB4_UP : NUM_MOUSESTATES;
 			
-		if (btn < bc.NUM_MOUSESTATES) {
-			for (size_t i=0; i<bc.m_slaves.size(); ++i) {
+		if (btn < self.NUM_MOUSESTATES) {
+			for (size_t i=0; i<slaves.size(); ++i) {
 				switch (btn) {
 					case MMB_DN: {
-						PostMessage(bc.m_slaves[i].hwnd,WM_KEYDOWN,(WPARAM)bc.down(VK_CONTROL)?VK_DOWN:VK_UP,0);
-						bc.m_ctrlDown[btn] = bc.down(VK_CONTROL);
+						PostMessage(slaves[i]->hwnd,WM_KEYDOWN,(WPARAM)self.down(VK_CONTROL)?VK_DOWN:VK_UP,0);
+						self.m_ctrlDown[btn] = self.down(VK_CONTROL);
 						break;
 					}
 					case (MMB_UP): {
-						PostMessage(bc.m_slaves[i].hwnd,WM_KEYUP,(WPARAM)bc.m_ctrlDown[MMB_DN]?VK_DOWN:VK_UP,0);
+						PostMessage(slaves[i]->hwnd,WM_KEYUP,(WPARAM)self.m_ctrlDown[MMB_DN]?VK_DOWN:VK_UP,0);
 						break;
 					}
 					case (MB4_DN): {
-						PostMessage(bc.m_slaves[i].hwnd,WM_KEYDOWN,(WPARAM)bc.down(VK_CONTROL)?VK_RIGHT:VK_LEFT,0);
-						bc.m_ctrlDown[btn] = bc.down(VK_CONTROL);
+						PostMessage(slaves[i]->hwnd,WM_KEYDOWN,(WPARAM)self.down(VK_CONTROL)?VK_RIGHT:VK_LEFT,0);
+						self.m_ctrlDown[btn] = self.down(VK_CONTROL);
 						break;
 					}
 					case (MB4_UP): {
-						PostMessage(bc.m_slaves[i].hwnd,WM_KEYUP,(WPARAM)bc.m_ctrlDown[MB4_DN]?VK_RIGHT:VK_LEFT,0);
+						PostMessage(slaves[i]->hwnd,WM_KEYUP,(WPARAM)self.m_ctrlDown[MB4_DN]?VK_RIGHT:VK_LEFT,0);
 						break;
 					}
 				}
 			}
 			if (btn==MMB_UP || btn==MB4_UP) {
-				bc.m_ctrlDown[btn]=0;
+				self.m_ctrlDown[btn]=0;
 			}
 		}
 	}
 
-	// ignore input not for master
-	if (curActiveWindow != bc.m_master) {
-		return 0;
-	}
-
-	// handle keyboard
-	if (bc.m_keyboardEnabled && inputType == RIM_TYPEKEYBOARD ) {
-		BROADCAST_FILTER::iterator iter = bc.m_filter.find(vKey);
-		if (iter==bc.m_filter.end()) {
-			return 0;
-		}
-		UINT msg = bc.rawKeyUp(flags) ? WM_KEYUP : bc.rawKeyDown(flags) ? WM_KEYDOWN : 0;
-		if (msg) {
-			LPARAM lparam = bc.pressed(vKey) ? 0 : bc.repeated(vKey) ? 0x40000000 : 0xC0000000;
-			lparam |= (scanCode<<16);
-			for (size_t i=0; i<bc.m_slaves.size(); ++i) {
-				PostMessage(bc.m_slaves[i].hwnd,msg,(WPARAM)vKey,lparam);
+	if (scanner.master() && curActiveWindow == scanner.master()->hwnd && self.m_keyboardEnabled && inputType == RIM_TYPEKEYBOARD)  {
+		BROADCAST_FILTER::iterator iter = self.m_filter.find(vKey);
+		if (iter!=self.m_filter.end()) {
+			UINT msg = self.rawKeyUp(flags) ? WM_KEYUP : self.rawKeyDown(flags) ? WM_KEYDOWN : 0;
+			if (msg) {
+				LPARAM lparam = self.pressed(vKey) ? 0 : self.repeated(vKey) ? 0x40000000 : 0xC0000000;
+				lparam |= (scanCode<<16);
+				for (size_t i=0; i<slaves.size(); ++i) {
+					PostMessage(slaves[i]->hwnd,msg,(WPARAM)vKey,lparam);
+				}
 			}
 		}
 	}
 
+	scanner.unlock();
 	return 0; 
-}
-//---------------------------------------------------------------------------
-// BROADCAST::DEBUGPRINT
-//---------------------------------------------------------------------------
-void Broadcaster::debugPrint(HWND hwnd, const char* extra/*==0*/)
-{
-	char name[64];
-	char classname[64];
-	GetWindowText(hwnd,name,_countof(name));
-	GetClassName(hwnd,classname,_countof(classname));
-	printf("%shandle=0x%08X, name=%s, class=%s\n", extra?extra:"", (UINT)hwnd, name, classname);
 }
 //---------------------------------------------------------------------------
 // WINAPI BROADCAST::RAWINPUTTHREAD
 //---------------------------------------------------------------------------
 DWORD WINAPI Broadcaster::inputThread(LPVOID param)
 {
-	Broadcaster& bc = Broadcaster::getInstance();
-	bc.m_pWin = new Win(HINST_THISCOMPONENT,"BroadcasterThread",0,0,10,10,0);
-	bc.m_pWin->addMsgHandler(WM_INPUT,broadcast);
+	Broadcaster& self = Broadcaster::getInstance();
+	self.m_pWin = new Win(HINST_THISCOMPONENT,"BroadcasterThread",0,0,10,10,0);
+	self.m_pWin->addMsgHandler(WM_INPUT,broadcast);
 
 	RAWINPUTDEVICE rid[2] = {
 		{ HID_USAGE_PAGE_GENERIC, HID_USAGE_GENERIC_KEYBOARD, RIDEV_INPUTSINK|RIDEV_NOHOTKEYS, Broadcaster::getInstance().m_pWin->hwnd },
@@ -216,59 +175,66 @@ void Broadcaster::zoomSlave(bool zoom)
 		return;
 	}
 
-	m_critSec.lock();
 	POINT p;
 	GetCursorPos(&p);
+
+	Scanner& scanner = scanner.getInstance();
+	Scanner::WINDOWLIST slaves;
+
+	scanner.lock();
+	scanner.getSlaves(slaves);
+	HWND master = scanner.master()->hwnd;
+
 	if (zoom) {
 		// zoom window under cursor
-		for (size_t i=0; i<m_slaves.size(); ++i) {
+		for (size_t i=0; i<slaves.size(); ++i) {
 			RECT r;
-			GetWindowRect(m_slaves[i].hwnd, &r);
+			GetWindowRect(slaves[i]->hwnd, &r);
 			bool mouseOver = ( p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom);
 			if ( mouseOver ) {
-				if (!m_slaves[i].zoomed) {
+				if (!slaves[i]->zoomed) {
 					// zoom - this is just for the layout with slaves down RH side of screen
 					util::Screen screen;
-					RECT& pos = m_slaves[i].pos;
-					int w = (pos.right-pos.left)*3/2;
-					int h = (pos.bottom-pos.top)*3/2;
-					int x = pos.right-w; // grow left
-					int y = pos.top + h < screen.h ? pos.top : pos.bottom-h; // grow down if possible else up
-					SetWindowPos(m_slaves[i].hwnd,HWND_TOPMOST,x,y,w,h,SWP_SHOWWINDOW);
-					m_slaves[i].zoomed = true;
+					RECT& pos = slaves[i]->pos;
+					int w = screen.w*4/5;
+					int h = screen.h*4/5;
+					int x = screen.centre.x - w/2;
+					int y = screen.centre.y - h/2;
+					SetWindowPos(slaves[i]->hwnd,HWND_TOP,x,y,w,h,SWP_SHOWWINDOW);
+					slaves[i]->zoomed = true;
 					break;
 				}
 			}
 		}
 	} else {
-		// unzoom all
-		for (size_t i=0; i<m_slaves.size(); ++i) {
-			if ( m_slaves[i].zoomed) {
-				RECT& pos = m_slaves[i].pos;
-				SetWindowPos(m_slaves[i].hwnd,0,pos.left,pos.top,pos.right-pos.left,pos.bottom-pos.top,SWP_NOZORDER|SWP_SHOWWINDOW);
-				m_slaves[i].zoomed = false;
+		// unzoom 
+		for (size_t i=0; i<slaves.size(); ++i) {
+			if ( slaves[i]->zoomed) {
+				RECT& pos = slaves[i]->pos;
+				SetWindowPos(slaves[i]->hwnd,HWND_TOP,pos.left,pos.top,pos.right-pos.left,pos.bottom-pos.top,SWP_SHOWWINDOW);
+				slaves[i]->zoomed = false;
 			}
 		}
 	}
-	
-	m_critSec.unlock();
-}
-//---------------------------------------------------------------------------
-// BROADCAST::INJECTRENAME
-//---------------------------------------------------------------------------
-void Broadcaster::injectRename()
-{
-	//TODO: should be in dispatcher
-	static struct { WORD vKey, scancode; } cmd = { 0x52, 0x13 }, newline = {VK_RETURN, 0x1C};
-	static INPUT_RECORD input[2] = {
-		{ KEY_EVENT, { TRUE,		0, cmd.vKey, cmd.scancode, {'r'}, 0 } },
-		{ KEY_EVENT, { TRUE,		0, newline.vKey, cmd.scancode, {newline.vKey}, 0 } },
-	};
 
-	DWORD count = 0;
-	HANDLE hConsoleIn = GetStdHandle(STD_INPUT_HANDLE);
-	WriteConsoleInput(hConsoleIn,input,2,&count);
+	scanner.unlock();
 }
+////---------------------------------------------------------------------------
+//// BROADCAST::INJECTRENAME
+////---------------------------------------------------------------------------
+//void Broadcaster::injectRename()
+//{
+//	//TODO: should be in dispatcher
+//	static struct { WORD vKey, scancode; } cmd = { 0x52, 0x13 }, newline = {VK_RETURN, 0x1C};
+//	static INPUT_RECORD input[2] = {
+//		{ KEY_EVENT, { TRUE,		0, cmd.vKey, cmd.scancode, {'r'}, 0 } },
+//		{ KEY_EVENT, { TRUE,		0, newline.vKey, cmd.scancode, {newline.vKey}, 0 } },
+//	};
+//
+//	DWORD count = 0;
+//	HANDLE hConsoleIn = GetStdHandle(STD_INPUT_HANDLE);
+//	WriteConsoleInput(hConsoleIn,input,2,&count);
+//}
 //---------------------------------------------------------------------------
 // BROADCAST::INITFILTER
 //---------------------------------------------------------------------------

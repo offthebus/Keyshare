@@ -1,108 +1,59 @@
 #include "stdafx.h"
 #include "main.h"
 #include "broadcaster.h"
-
-const char* Globals::APPNAME = "Keyshare";
+#include "scanner.h"
 
 //---------------------------------------------------------------------------
 // MAIN
 //---------------------------------------------------------------------------
 int main(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	//TODO: targeting macro
-	// zoom slaves
-	
 	Dispatcher dispatcher;
+
 	dispatcher.push_back('q',onQuit);	
 	dispatcher.push_back('h',onHelp);	
-	dispatcher.push_back('r',onRename);
+	dispatcher.push_back('m',onMaster);
 	dispatcher.push_back('s',onScan);
-	dispatcher.push_back('k',onKeyboard);
-	dispatcher.push_back('m',onMouse);
-	dispatcher.push_back('i',onInfo);
+	dispatcher.push_back('b',onBroadcast);
+	dispatcher.push_back('w',onWindows);
 	dispatcher.push_back('l',onLayout);
-
-	Broadcaster& bc = Broadcaster::getInstance();
-	bc.enableKeyboard(false);
-	bc.enableMouse(false);
-
-	Globals& globals = Globals::getInstance(); 
-	globals.hEvents[Globals::H_SCAN] = CreateEvent(0,TRUE,FALSE,"ScanEvent");
-	globals.hEvents[Globals::H_QUIT] = CreateEvent(0,TRUE,FALSE,"QuitEvent");
-	globals.hThread = CreateThread( NULL, 0, scanWindowsThread, 0, 0, 0 );
-	globals.scanning = false;
-
-	dispatcher.execute('k');
-	dispatcher.execute('s');
+	
+	dispatcher.execute('s',"start");
 	dispatcher.mainloop();
 
 	ExitProcess(0);
 }
 //---------------------------------------------------------------------------
-// PRINTINFO
+// ONMASTER
 //---------------------------------------------------------------------------
-void printInfo(HWND hwnd, const char* extra/*==0*/)
+int onMaster(Dispatcher::CMDLINE& cmdLine)
 {
-	char name[64];
-	char classname[64];
-	GetWindowText(hwnd,name,_countof(name));
-	GetClassName(hwnd,classname,_countof(classname));
-	printf("%shandle=0x%08X, name=%s, class=%s\n", extra?extra:"", (UINT)hwnd, name, classname);
-}
-//---------------------------------------------------------------------------
-// CALLBACK ENUMWINDOWSPROC
-//---------------------------------------------------------------------------
-BOOL CALLBACK enumWindowsProc(HWND _hwnd, LPARAM lParam)
-{
-	Broadcaster& bc = Broadcaster::getInstance();
-	char buf[256];
-	GetWindowText(_hwnd,buf,_countof(buf));
-	_strlwr_s(buf,_countof(buf));
-	if (!strncmp(buf, "master", 6)) {
-		bc.push_back(_hwnd,true);
-	} else if (!strncmp(buf, "slave", 5)) {
-		bc.push_back(_hwnd);
+	if (cmdLine.size() == 2) {
+		int windowNum = atoi(cmdLine[1]);
+		Scanner& scanner = Scanner::getInstance();
+		scanner.makeMaster(windowNum);
+	} else {
+		printf("format of command is: \"m(aster) {N}\"\n");
 	}
-	return TRUE;
-}
-//---------------------------------------------------------------------------
-// WINAPI SCANWINDOWSTHREAD
-//---------------------------------------------------------------------------
-DWORD WINAPI scanWindowsThread(LPVOID param)
-{
-	Globals& globals = Globals::getInstance();
-
-	while ( int iEvent = WaitForMultipleObjects(Globals::H_NUM_EVENTS, globals.hEvents, FALSE, INFINITE) - WAIT_OBJECT_0) {
-		if ( iEvent == Globals::H_QUIT ) {
-			break;
-		} else if ( iEvent == Globals::H_SCAN ) {
-			printf("scanning for master/slave windows ...\n");
-			globals.scanning = true;		
-			Broadcaster::getInstance().clear();
-			while (globals.scanning) {
-				EnumWindows(enumWindowsProc,0);
-				Sleep(1000);
-			}
-		}
-	}
-
-	printf("Scan thread terminated\n");
-	ExitThread(0);
+	
+	return 1;
 }
 //---------------------------------------------------------------------------
 // ONLAYOUT
 //---------------------------------------------------------------------------
 int onLayout(Dispatcher::CMDLINE&)
 {
-	Globals& g = Globals::getInstance();
 	Broadcaster& bc = Broadcaster::getInstance();
 	bc.windowsReadyToZoom(false);
 
-	if (bc.master()) {
+	Scanner& scanner = Scanner::getInstance();
+	scanner.lock();
+
+	if (scanner.master()) {
 		util::Screen screen;
 
-		// master occupies left hand 2/3 of the screen
-		int x = 0, y=0, w=screen.w*2/3, h=screen.h;
+		// master occupies left hand 3/4 of the screen
+		int x = 0, y=0, w=screen.w*3/4, h=screen.h;
 		
 		// adjust for taskbar
 		switch (screen.getTaskBarPosition()) {
@@ -123,13 +74,15 @@ int onLayout(Dispatcher::CMDLINE&)
 		}
 
 		// set master
-		SetWindowPos(bc.master(),NULL,x,y,w,h,SWP_NOZORDER|SWP_SHOWWINDOW);
+		SetWindowPos(scanner.master()->hwnd,NULL,x,y,w,h,SWP_NOZORDER|SWP_SHOWWINDOW);
 		
-		const Broadcaster::WINDOWLIST& slaves = bc.slaves();
+		Scanner::WINDOWLIST slaves;
+		scanner.getSlaves(slaves);
+	
 		if (slaves.size()) {
 			x += w; // slaves x from RH edge of master, y same as master
 			h /= slaves.size(); // divide master height between slaves
-			w = screen.w/3; // slaves occupy right hand third of screen
+			w = screen.w/4; // slaves occupy right hand quarter of screen
 
 			// adjust for taskbar
 			if (screen.getTaskBarPosition() == screen.TB_RIGHT) {
@@ -138,31 +91,38 @@ int onLayout(Dispatcher::CMDLINE&)
 
 			// set slave(s)
 			for (size_t i=0; i<slaves.size(); ++i) {
-				SetWindowPos(slaves[i].hwnd,NULL,x,y,w,h,SWP_NOZORDER|SWP_SHOWWINDOW);
-				GetWindowRect(slaves[i].hwnd,(LPRECT)&slaves[i].pos);
+				SetWindowPos(slaves[i]->hwnd,NULL,x,y,w,h,SWP_NOZORDER|SWP_SHOWWINDOW);
+				GetWindowRect(slaves[i]->hwnd,(LPRECT)&slaves[i]->pos);
 				y += h;
 			}
 		}
 		bc.windowsReadyToZoom(true);
 	}
+
+	scanner.unlock();
 	return 1;
 }
 //---------------------------------------------------------------------------
-// ONKEYBOARD
+// ONBROADCAST
 //---------------------------------------------------------------------------
-int onKeyboard(Dispatcher::CMDLINE& cmdLine) 
+int onBroadcast(Dispatcher::CMDLINE& cmdLine) 
 {
-	Broadcaster& bc = Broadcaster::getInstance();
-	printf("broadcast keyboard %s\n", bc.enableKeyboard(!bc.isKeyboardEnabled()) ? "stopped": "started" );
-	return 1;
-}
-//---------------------------------------------------------------------------
-// ONMOUSE
-//---------------------------------------------------------------------------
-int onMouse(Dispatcher::CMDLINE& cmdLine) 
-{
-	Broadcaster& bc = Broadcaster::getInstance();
-	printf("broadcast mouse %s\n", bc.enableMouse(!bc.isMouseEnabled()) ? "stopped": "started" );
+	bool ok = cmdLine.size()==2;
+	bool start = ok && !_stricmp(cmdLine[1],"start");
+	bool stop = ok && !start && !_stricmp(cmdLine[1],"stop");
+
+	if (!ok || (!start && !stop)) {
+		printf("command format is: \"b(roadcast) {start|stop}\"\n");
+		return 1;
+	}
+
+	if (start) {
+		Scanner::getInstance().stop();
+		Broadcaster::getInstance().start();
+	} else {
+		Broadcaster::getInstance().stop();
+	} 
+
 	return 1;
 }
 //---------------------------------------------------------------------------
@@ -170,118 +130,96 @@ int onMouse(Dispatcher::CMDLINE& cmdLine)
 //---------------------------------------------------------------------------
 int onScan(Dispatcher::CMDLINE& cmdLine)
 {
-	Globals& globals = Globals::getInstance();
+	bool ok = cmdLine.size()==2;
+	bool start = ok && !_stricmp(cmdLine[1],"start");
+	bool stop = ok && !start && !_stricmp(cmdLine[1],"stop");
 
-	if (!globals.scanning) {
-		Broadcaster::getInstance().clear();
-		SetEvent(globals.hEvents[Globals::H_SCAN]);
-		globals.scanning = true;
-	} else {
-		ResetEvent(globals.hEvents[Globals::H_SCAN]);
-		globals.scanning = false;
-	}
-
-	printf("scan %s\n", globals.scanning ? "started" : "stopped" );
-
-	return 1;
-}
-//---------------------------------------------------------------------------
-// ONRENAME
-//---------------------------------------------------------------------------
-int onRename(Dispatcher::CMDLINE& args)
-{
-	HWND toBeRenamed = Broadcaster::getInstance().toBeRenamed();
-	char inp[64];
-	
-	if (!toBeRenamed) {
+	if (!ok || (!start && !stop)) {
+		printf("command format is: \"s(scan) {start|stop}\"\n");
 		return 1;
 	}
 
-	HWND console = GetConsoleWindow();
-	SetWindowPos(console,HWND_TOP,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE);
-	SetForegroundWindow(console);
+	Scanner& scanner = Scanner::getInstance();
 
-	printInfo(toBeRenamed,"* Rename window: " );
-	printf("* Enter name: ");
-	gets_s(inp,sizeof(inp));
-	if (*inp) {
-		SetWindowText(toBeRenamed,inp);
-		printf("* done\n");
+	if (start) {
+		if (!scanner.scanning()) {
+			Broadcaster::getInstance().stop();
+			scanner.start();
+		}
 	} else {
-		printf("* no input - cancelled\n");
+		scanner.stop();
 	}
 
 	return 1;
 }
+////---------------------------------------------------------------------------
+//// ONRENAME
+////---------------------------------------------------------------------------
+//int onRename(Dispatcher::CMDLINE& args)
+//{
+//	printf("command suspended\n");
+//	return 1;
+//
+//	HWND toBeRenamed = Broadcaster::getInstance().toBeRenamed();
+//	char inp[64];
+//	
+//	if (!toBeRenamed) {
+//		return 1;
+//	}
+//
+//	HWND console = GetConsoleWindow();
+//	SetWindowPos(console,HWND_TOP,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE);
+//	SetForegroundWindow(console);
+//
+////	printInfo(toBeRenamed,"* Rename window: " );
+//	printf("* Enter name: ");
+//	gets_s(inp,sizeof(inp));
+//	if (*inp) {
+//		SetWindowText(toBeRenamed,inp);
+//		printf("* done\n");
+//	} else {
+//		printf("* no input - cancelled\n");
+//	}
+//
+//	return 1;
+//}
 //---------------------------------------------------------------------------
 // ONQUIT
 //---------------------------------------------------------------------------
 int onQuit(Dispatcher::CMDLINE& cmdLine)
 {
-	Globals& globals = Globals::getInstance();
-	SetEvent(globals.hEvents[Globals::H_QUIT]);
-	globals.scanning = false;
+	Scanner::getInstance().terminate();
 	Broadcaster::getInstance().terminate();
-	WaitForSingleObject(globals.hThread,5000);
+	Sleep(Scanner::SCAN_PERIOD_MS);
 	printf("Keyshare exit\n");
-	Sleep(500);
 	return 0;
 }
 //---------------------------------------------------------------------------
 // ONINFO
 //---------------------------------------------------------------------------
-int onInfo(Dispatcher::CMDLINE& cmdLine)
+int onWindows(Dispatcher::CMDLINE& cmdLine)
 {
 	Broadcaster& bc = Broadcaster::getInstance();
-
-	printf("Application state: broadcast keyboard %s, mouse %s, scan is %s\n", 
-		bc.isKeyboardEnabled()?"ON":"OFF", bc.isMouseEnabled()?"ON":"OFF",Globals::getInstance().scanning?"ON":"OFF");
-	if (bc.master()) {
-		printInfo(bc.master(),"Master: ");
-	} else {
-		printf("No master window\n");
-	}
-	const Broadcaster::WINDOWLIST& slaves = bc.slaves();
-	for (size_t i=0; i<slaves.size(); ++i) {
-		printInfo(slaves[i].hwnd,"Slave: ");
-	}
-
+	Scanner& sc = Scanner::getInstance();
+	printf("Broadcast %s, Scan %s\n", bc.isKeyboardEnabled()?"ON":"OFF",sc.scanning()?"ON":"OFF");
+	sc.printWindowList();
 	return 1;
 }
-////---------------------------------------------------------------------------
-//// ONRELOAD
-////---------------------------------------------------------------------------
-//int onReload(CMDLINE& cmdLine)
-//{
-//	Config* script = new Config;
-//	if (!script->valid) {
-//		printf("config.txt load error\n");
-//		return 0;
-//	} else {
-//		delete globals.script;
-//		globals.script = script;
-//	}
-//
-//	return 1;
-//}
 //---------------------------------------------------------------------------
 // ONHELP
 //---------------------------------------------------------------------------
 int onHelp(Dispatcher::CMDLINE& cmdLine) 
 {
 	printf("List of Commands:\n");
-	printf("  s(can)        toggle scan\n"
-			 "  k(eyboard)    toggle broadcasting keyboard\n"
-			 "  m(ouse)       not implemented\n"
-			 "  i(nfo)        list app state and known windows\n"
-			 "  l(ayout)      layout windows\n"
-			 "  h(elp)        print this info\n"
-			 "  q(uit)        exit application\n");
-	printf("List of Hotkeys:\n");
-	printf("  Ctrl+]        rename active window\n"
-			 "  Ctrl+=        toggle echo\n"
-			 "  ` (backtick)  zoom slave under cursor\n");
-	printf("List of mouse mappings:\n");
+	printf("  s(can) {start|stop}       scan for World of Warcraft windows, turns off broadcast\n"
+			 "  b(roadcast) {start|stop}  broadcast keyboard, turns off scan\n"
+			 "  w(indows)                 list windows\n"
+			 "  m(aster) {N}              designate window number N as the master\n"
+			 "  l(ayout)                  layout windows\n"
+			 "  `                         zoom slave under cursor, press again to unzoom\n"
+			 "  h(elp)                    print this info\n"
+			 "  q(uit)                    exit application\n");
+	printf("Mouse to arrow key mappings:\n");
 	printf("  middle button       up arrow\n"
 			 "  Ctrl+middle button  down arrow\n"
 			 "  button4             left arrow\n"
@@ -289,86 +227,6 @@ int onHelp(Dispatcher::CMDLINE& cmdLine)
 
 	return 1;
 }
-////---------------------------------------------------------------------------
-//// INITFILTER
-////---------------------------------------------------------------------------
-//void initFilter()
-//{
-//	Globals& g = Globals::getInstance();
-//
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_TAB,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_SHIFT,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_CONTROL,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_MENU,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_SPACE,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_0,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_1,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_2,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_3,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_4,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_5,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_6,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_7,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_8,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_9,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_Q,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_E,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_R,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_T,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_Y,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_U,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_I,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_O,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_G,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_H,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_J,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_Z,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_X,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_V,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_N,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD0,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD1,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD2,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD3,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD4,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD5,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD6,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD7,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD8,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD9,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_MULTIPLY,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_ADD,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_SEPARATOR,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_SUBTRACT,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_DECIMAL,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_DIVIDE,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F1,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F2,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F3,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F4,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F5,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F6,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F7,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F8,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F9,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F10,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F11,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_F12,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_PLUS,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_COMMA,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_MINUS,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_PERIOD,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_1,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_2,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_3,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_4,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_5,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_6,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_7,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_8,1));
-//	g.filter.insert(BROADCAST_FILTER::value_type(VK_OEM_102,1));
-//}
 
 ////---------------------------------------------------------------------------
 //// CONFIG::PARSESCRIPT

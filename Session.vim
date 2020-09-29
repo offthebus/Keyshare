@@ -58,19 +58,20 @@ if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
 set shortmess=aoO
-badd +206 broadcaster.cpp
-badd +42 dispatcher.cpp
-badd +283 main.cpp
+badd +221 broadcaster.cpp
+badd +2 dispatcher.cpp
+badd +95 main.cpp
 badd +1 util.cpp
 badd +64 win.cpp
-badd +126 broadcaster.h
+badd +21 broadcaster.h
 badd +24 dispatcher.h
-badd +16 main.h
+badd +8 main.h
 badd +1 stdafx.h
 badd +1 targetver.h
 badd +88 util.h
 badd +1 win.h
-badd +145 ..\_mand\keyboard.h
+badd +83 scanner.h
+badd +79 scanner.cpp
 argglobal
 silent! argdel *
 $argadd broadcaster.cpp
@@ -214,12 +215,12 @@ set nowrap
 setlocal nowrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 117 - ((33 * winheight(0) + 29) / 59)
+let s:l = 200 - ((26 * winheight(0) + 29) / 59)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-117
-normal! 0
+200
+normal! 036|
 wincmd w
 argglobal
 enew
