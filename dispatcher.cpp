@@ -7,8 +7,8 @@
 //---------------------------------------------------------------------------
 int Dispatcher::dispatch(CMDLINE cmdLine)
 {
-	DISPATCHER::iterator iter = dispatcher.find(tolower(cmdLine[0][0]));
-	if (iter != dispatcher.end()) {
+	DISPATCHER::iterator iter = m_dispatcher.find(tolower(cmdLine[0][0]));
+	if (iter != m_dispatcher.end()) {
 		return (iter->second)(cmdLine);
 	} else {
 		printf("%s is not a recognised command\n",cmdLine[0]);
@@ -40,6 +40,7 @@ bool Dispatcher::getInput()
 		} while (c != '\n');
 	}
 
+	strcpy_s(m_inputLine,_countof(m_inputLine),m_input);
 	return true;
 }
 //---------------------------------------------------------------------------

@@ -142,14 +142,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="broadcaster.cpp" />
+    <ClCompile Include="config.cpp" />
     <ClCompile Include="dispatcher.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="scanner.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="win.cpp" />
+    <ClCompile Include="windowManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="broadcaster.h" />
+    <ClInclude Include="config.h" />
     <ClInclude Include="dispatcher.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="scanner.h" />
@@ -157,6 +160,7 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="win.h" />
+    <ClInclude Include="windowManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

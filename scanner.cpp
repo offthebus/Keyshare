@@ -32,7 +32,13 @@ BOOL CALLBACK Scanner::enumWindowsProc(HWND _hwnd, LPARAM lParam)
 			if (strcmp(win->classname,"GxWindowClass")) {
 				delete win;
 			} else {
-				win->master = !strncmp(buf+17," MASTER",7);
+				if ( win->ordinal == 1 ) {
+					char buf[64];
+					sprintf_s(buf,_countof(buf),"%s MASTER", "World of Warcraft");
+					win->name = util::strAllocCopy(buf);
+					win->master = true;
+					SetWindowText(win->hwnd,buf);
+				}
 				self.lock();
 				self.m_windows.push_back(win);
 				self.unlock();
@@ -64,39 +70,5 @@ DWORD WINAPI Scanner::scanWindowsThread(LPVOID param)
 
 	printf("Scan thread terminated\n");
 	ExitThread(0);
-}
-//---------------------------------------------------------------------------
-// SCANNER::MAKEMASTER
-//---------------------------------------------------------------------------
-void Scanner::makeMaster(int windowNumber /*one based*/) 
-{
-	static const int MAX_NAME = 32;
-	char buf[MAX_NAME];
-	int slave = 1;
-
-	lock();
-
-	if (windowNumber<1 || windowNumber>(int)m_windows.size()) {
-		printf("window number %d not found\n",windowNumber);
-	} else {
-		int target = windowNumber-1;
-		for (size_t i=0; i<m_windows.size(); ++i) {
-			Window* win = m_windows[i];
-			if ( i==target ) {
-				sprintf_s(buf,_countof(buf),"%s MASTER", "World of Warcraft");
-				win->master = true;
-			} else {
-				sprintf_s(buf,_countof(buf),"%s SLAVE %02d", "World of Warcraft", slave++);
-				win->master = false;
-			}
-			SetWindowText(win->hwnd,buf);
-			delete[] win->name;
-			win->name = util::strAllocCopy(buf);
-		}
-	}
-
-	unlock();
-	printWindowList();
-
 }
  

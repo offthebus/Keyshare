@@ -15,12 +15,10 @@ class Scanner
 
 
 		void lock() {
-//			printf("locked (%d)\n", ++lock_count);
 			m_critSec.lock();
 		}
 
 		void unlock() {
-//			printf("unlocked (%d)\n", --lock_count);
 			m_critSec.unlock();
 		}
 

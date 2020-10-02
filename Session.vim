@@ -58,20 +58,25 @@ if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
 set shortmess=aoO
-badd +221 broadcaster.cpp
-badd +2 dispatcher.cpp
-badd +95 main.cpp
-badd +1 util.cpp
+badd +238 broadcaster.cpp
+badd +43 dispatcher.cpp
+badd +70 main.cpp
+badd +122 util.cpp
 badd +64 win.cpp
-badd +21 broadcaster.h
+badd +76 broadcaster.h
 badd +24 dispatcher.h
-badd +8 main.h
+badd +14 main.h
 badd +1 stdafx.h
 badd +1 targetver.h
-badd +88 util.h
+badd +201 util.h
 badd +1 win.h
-badd +83 scanner.h
-badd +79 scanner.cpp
+badd +66 scanner.h
+badd +74 scanner.cpp
+badd +19 windowManager.h
+badd +70 windowManager.cpp
+badd +7 config.txt
+badd +10 config.h
+badd +83 config.cpp
 argglobal
 silent! argdel *
 $argadd broadcaster.cpp
@@ -86,7 +91,7 @@ $argadd stdafx.h
 $argadd targetver.h
 $argadd util.h
 $argadd win.h
-edit broadcaster.cpp
+edit main.cpp
 set splitbelow splitright
 wincmd _ | wincmd |
 split
@@ -99,6 +104,7 @@ set winminheight=1 winheight=1 winminwidth=1 winwidth=1
 exe '1resize ' . ((&lines * 59 + 36) / 72)
 exe '2resize ' . ((&lines * 10 + 36) / 72)
 argglobal
+if bufexists('main.cpp') | buffer main.cpp | else | edit main.cpp | endif
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -215,12 +221,12 @@ set nowrap
 setlocal nowrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 200 - ((26 * winheight(0) + 29) / 59)
+let s:l = 154 - ((43 * winheight(0) + 29) / 59)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-200
-normal! 036|
+154
+normal! 017|
 wincmd w
 argglobal
 enew

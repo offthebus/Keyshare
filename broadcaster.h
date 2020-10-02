@@ -17,17 +17,17 @@ class Broadcaster
 		}
 	
 		void start() {
-			m_keyboardEnabled = true;
+			m_broadcasting = true;
 			printf("broadcast ON\n");
 		}
 
 		void stop() {
 			printf("broadcast OFF\n");
-			m_keyboardEnabled = false;
+			m_broadcasting = false;
 		}
 
-		bool isKeyboardEnabled() { 
-			return m_keyboardEnabled;
+		bool isBroadcasting() { 
+			return m_broadcasting;
 		}
 
 		void terminate() {
@@ -35,10 +35,6 @@ class Broadcaster
 			WaitForSingleObject(m_hThread,5000);
 		}
 
-		void windowsReadyToZoom(bool ok) {
-			m_windowsReadyToZoom = ok;
-		}
-				
 	private:
 		void operator=(const Broadcaster&) = delete;
 		Broadcaster(const Broadcaster&) = delete;
@@ -73,12 +69,10 @@ class Broadcaster
 	
 		unsigned char m_keyState[256];
 		bool m_echo;
-		bool m_windowsReadyToZoom;
 		HANDLE m_hThread;
-		bool m_keyboardEnabled;
+		bool m_broadcasting;
 		Win* m_pWin;
 
-		void zoomSlave(bool zoom);
 		void initFilter();
 		static DWORD WINAPI inputThread(LPVOID param);
 		static int broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

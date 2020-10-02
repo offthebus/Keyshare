@@ -2,12 +2,13 @@
 #include "scanner.h"
 #include "broadcaster.h"
 #include "util.h"
+#include "windowManager.h"
 
 //---------------------------------------------------------------------------
 // ::BROADCAST
 //---------------------------------------------------------------------------
 Broadcaster::Broadcaster() 
-: m_keyboardEnabled(false), m_windowsReadyToZoom(false), m_echo(false) 
+: m_broadcasting(false), m_echo(false) 
 {
 	util::zeroMem(m_keyState);
 	util::zeroMem(m_ctrlDown);
@@ -37,11 +38,7 @@ int Broadcaster::broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	HWND curActiveWindow = GetForegroundWindow();
 	Broadcaster& self = Broadcaster::getInstance();
 
-//	if (self.m_echo && inputType == RIM_TYPEKEYBOARD) {
-//		printf("VKEY: 0x%04X SCAN: 0x%04X FLAGS: 0x%04X\n", vKey,scanCode,flags);
-//	}
-	
-	// update state
+	// update key states
 	if (inputType == RIM_TYPEKEYBOARD) {	
 		if (self.rawKeyUp(flags)) {
 			self.m_keyState[vKey] = 0; // key up
@@ -54,30 +51,23 @@ int Broadcaster::broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 
-//	// Hotkeys 
-//	if ( self.down(VK_CONTROL) && self.pressed(VK_OEM_6)) {
-//		self.m_toBeRenamed = curActiveWindow;
-//		SetForegroundWindow(GetConsoleWindow());
-//		self.injectRename();
-//		return 0;
-//	}
-//	if ( self.down(VK_CONTROL) && self.pressed(VK_OEM_PLUS) ) {
-//		self.m_echo = !self.m_echo;
-//		printf("echo %s\n", self.m_echo ? "ON" : "OFF");
-//	}
-	
-	// zoom key '`'
+	// do hotkeys
 	if (self.pressed(VK_OEM_8)) {
 		static unsigned int pressed = 1;
-		self.zoomSlave(!(++pressed%2));
+		WindowManager::getInstance().zoomSlave(!(++pressed%2));
 	}
 
+	// quit if not broadcasting
+	if (!self.isBroadcasting()) {
+		return 0;
+	}
+		
 	Scanner& scanner = scanner.getInstance();
 	Scanner::WINDOWLIST slaves;
-
 	scanner.lock();
 	scanner.getSlaves(slaves);
 
+	// do mouse buttons that are mapped to arrow keys
 	// MMB=up arrow, Ctrl+MMB = down arrow, MB4 = strafe apart left arrow, Ctrl+MB4 = strafe together, right arrow
 	if (inputType == RIM_TYPEMOUSE ) {
 		unsigned short int& flags = raw.data.mouse.usButtonFlags;
@@ -116,7 +106,8 @@ int Broadcaster::broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 
-	if (scanner.master() && curActiveWindow == scanner.master()->hwnd && self.m_keyboardEnabled && inputType == RIM_TYPEKEYBOARD)  {
+	// do keystrokes
+	if (scanner.master() && curActiveWindow == scanner.master()->hwnd && inputType == RIM_TYPEKEYBOARD)  {
 		BROADCAST_FILTER::iterator iter = self.m_filter.find(vKey);
 		if (iter!=self.m_filter.end()) {
 			UINT msg = self.rawKeyUp(flags) ? WM_KEYUP : self.rawKeyDown(flags) ? WM_KEYDOWN : 0;
@@ -167,75 +158,6 @@ DWORD WINAPI Broadcaster::inputThread(LPVOID param)
 	ExitThread(0);
 }
 //---------------------------------------------------------------------------
-// BROADCAST::ZOOMSLAVE
-//---------------------------------------------------------------------------
-void Broadcaster::zoomSlave(bool zoom)
-{
-	if (!m_windowsReadyToZoom) {
-		return;
-	}
-
-	POINT p;
-	GetCursorPos(&p);
-
-	Scanner& scanner = scanner.getInstance();
-	Scanner::WINDOWLIST slaves;
-
-	scanner.lock();
-	scanner.getSlaves(slaves);
-	HWND master = scanner.master()->hwnd;
-
-	if (zoom) {
-		// zoom window under cursor
-		for (size_t i=0; i<slaves.size(); ++i) {
-			RECT r;
-			GetWindowRect(slaves[i]->hwnd, &r);
-			bool mouseOver = ( p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom);
-			if ( mouseOver ) {
-				if (!slaves[i]->zoomed) {
-					// zoom - this is just for the layout with slaves down RH side of screen
-					util::Screen screen;
-					RECT& pos = slaves[i]->pos;
-					int w = screen.w*4/5;
-					int h = screen.h*4/5;
-					int x = screen.centre.x - w/2;
-					int y = screen.centre.y - h/2;
-					SetWindowPos(slaves[i]->hwnd,HWND_TOP,x,y,w,h,SWP_SHOWWINDOW);
-					slaves[i]->zoomed = true;
-					break;
-				}
-			}
-		}
-	} else {
-		// unzoom 
-		for (size_t i=0; i<slaves.size(); ++i) {
-			if ( slaves[i]->zoomed) {
-				RECT& pos = slaves[i]->pos;
-				SetWindowPos(slaves[i]->hwnd,HWND_TOP,pos.left,pos.top,pos.right-pos.left,pos.bottom-pos.top,SWP_SHOWWINDOW);
-				slaves[i]->zoomed = false;
-			}
-		}
-	}
-
-	scanner.unlock();
-}
-////---------------------------------------------------------------------------
-//// BROADCAST::INJECTRENAME
-////---------------------------------------------------------------------------
-//void Broadcaster::injectRename()
-//{
-//	//TODO: should be in dispatcher
-//	static struct { WORD vKey, scancode; } cmd = { 0x52, 0x13 }, newline = {VK_RETURN, 0x1C};
-//	static INPUT_RECORD input[2] = {
-//		{ KEY_EVENT, { TRUE,		0, cmd.vKey, cmd.scancode, {'r'}, 0 } },
-//		{ KEY_EVENT, { TRUE,		0, newline.vKey, cmd.scancode, {newline.vKey}, 0 } },
-//	};
-//
-//	DWORD count = 0;
-//	HANDLE hConsoleIn = GetStdHandle(STD_INPUT_HANDLE);
-//	WriteConsoleInput(hConsoleIn,input,2,&count);
-//}
-//---------------------------------------------------------------------------
 // BROADCAST::INITFILTER
 //---------------------------------------------------------------------------
 void Broadcaster::initFilter()
@@ -264,12 +186,9 @@ void Broadcaster::initFilter()
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_R,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_T,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_Y,1));
-	m_filter.insert(BROADCAST_FILTER::value_type(VK_U,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_I,1));
-	m_filter.insert(BROADCAST_FILTER::value_type(VK_O,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_F,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_G,1));
-	m_filter.insert(BROADCAST_FILTER::value_type(VK_H,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_J,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_Z,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_X,1));
@@ -308,7 +227,7 @@ void Broadcaster::initFilter()
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_MINUS,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_PERIOD,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_1,1));
-	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_2,1));
+//	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_2,1)); // forward slash opens chat
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_3,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_4,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_5,1));
@@ -317,3 +236,15 @@ void Broadcaster::initFilter()
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_8,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_OEM_102,1));
 }
+//{
+//	static struct { WORD vKey, scancode; } cmd = { 0x52, 0x13 }, newline = {VK_RETURN, 0x1C};
+//	static INPUT_RECORD input[2] = {
+//		{ KEY_EVENT, { TRUE,		0, cmd.vKey, cmd.scancode, {'r'}, 0 } },
+//		{ KEY_EVENT, { TRUE,		0, newline.vKey, cmd.scancode, {newline.vKey}, 0 } },
+//	};
+//
+//	DWORD count = 0;
+//	HANDLE hConsoleIn = GetStdHandle(STD_INPUT_HANDLE);
+//	WriteConsoleInput(hConsoleIn,input,2,&count);
+//}
+
