@@ -3,6 +3,7 @@
 #include "broadcaster.h"
 #include "util.h"
 #include "windowManager.h"
+#include "Dispatcher.h"
 
 //---------------------------------------------------------------------------
 // ::BROADCAST
@@ -49,12 +50,15 @@ int Broadcaster::broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				self.m_keyState[vKey] = 1; // key down 
 			}
 		}
-	}
 
-	// do hotkeys
-	if (self.pressed(VK_OEM_8)) {
-		static unsigned int pressed = 1;
-		WindowManager::getInstance().zoomSlave(!(++pressed%2));
+		// do hotkeys
+		if (self.pressed(VK_OEM_8)) {
+			static unsigned int pressed = 1;
+			WindowManager::getInstance().zoomSlave(!(++pressed%2));
+		}
+		if (self.down(VK_CONTROL) && self.pressed(VK_OEM_6)) {
+			Dispatcher::getInstance().execute('b', self.isBroadcasting() ? "stop" : "start" );
+		}
 	}
 
 	// quit if not broadcasting
@@ -115,7 +119,10 @@ int Broadcaster::broadcast(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				LPARAM lparam = self.pressed(vKey) ? 0 : self.repeated(vKey) ? 0x40000000 : 0xC0000000;
 				lparam |= (scanCode<<16);
 				for (size_t i=0; i<slaves.size(); ++i) {
-					PostMessage(slaves[i]->hwnd,msg,(WPARAM)vKey,lparam);
+					BOOL rc = PostMessage(slaves[i]->hwnd,msg,(WPARAM)vKey,lparam);
+					if (!rc) {
+						LOGSYS();
+					}
 				}
 			}
 		}
@@ -193,7 +200,7 @@ void Broadcaster::initFilter()
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_Z,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_X,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_V,1));
-	m_filter.insert(BROADCAST_FILTER::value_type(VK_N,1));
+//	m_filter.insert(BROADCAST_FILTER::value_type(VK_N,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD0,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD1,1));
 	m_filter.insert(BROADCAST_FILTER::value_type(VK_NUMPAD2,1));

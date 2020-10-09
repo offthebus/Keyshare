@@ -92,8 +92,7 @@ void WindowManager::zoomSlave(bool zoom)
 					int h = screen.h*4/5;
 					int x = screen.centre.x - w/2;
 					int y = screen.centre.y - h/2;
-					SetForegroundWindow(slaves[i]->hwnd);
-					SetWindowPos(slaves[i]->hwnd,HWND_TOP,x,y,w,h,SWP_SHOWWINDOW);
+					SetWindowPos(slaves[i]->hwnd,HWND_TOPMOST,x,y,w,h,NULL);
 					slaves[i]->zoomed = true;
 					break;
 				}
@@ -104,11 +103,11 @@ void WindowManager::zoomSlave(bool zoom)
 		for (size_t i=0; i<slaves.size(); ++i) {
 			if ( slaves[i]->zoomed) {
 				RECT& pos = slaves[i]->pos;
-				SetWindowPos(slaves[i]->hwnd,HWND_TOP,pos.left,pos.top,pos.right-pos.left,pos.bottom-pos.top,SWP_SHOWWINDOW);
+				SetWindowPos(slaves[i]->hwnd,NULL,pos.left,pos.top,pos.right-pos.left,pos.bottom-pos.top,SWP_NOZORDER);
 				slaves[i]->zoomed = false;
+				break;
 			}
 		}
-		SetForegroundWindow(master);
 	}
 	scanner.unlock();
 }

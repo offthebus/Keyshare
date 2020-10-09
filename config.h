@@ -11,17 +11,19 @@ class Config
 			return instance;
 		}
 		
-		typedef enum { C_LAYOUT, C_NUM_IDENTIFIERS } IDENTIFIER; 
+		typedef enum { C_BIND, C_NUM_IDENTIFIERS } IDENTIFIER; 
 		static const char* s_identifiers[C_NUM_IDENTIFIERS];
+
+//		typedef enum { C_
 
 		struct ConfigData
 		{
 			IDENTIFIER type;
 			union {
 				struct {
-					int windowNumber;
-					int value;
-				} layout;
+					int vkKey;
+					int vkBindTo;
+				} bind;
 			};
 		};
 

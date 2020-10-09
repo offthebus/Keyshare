@@ -58,25 +58,26 @@ if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
 set shortmess=aoO
-badd +238 broadcaster.cpp
-badd +43 dispatcher.cpp
-badd +70 main.cpp
-badd +122 util.cpp
+badd +65 broadcaster.cpp
+badd +7 dispatcher.cpp
+badd +91 main.cpp
+badd +118 util.cpp
 badd +64 win.cpp
-badd +76 broadcaster.h
-badd +24 dispatcher.h
-badd +14 main.h
+badd +68 broadcaster.h
+badd +1 dispatcher.h
+badd +15 main.h
 badd +1 stdafx.h
 badd +1 targetver.h
-badd +201 util.h
+badd +18 util.h
 badd +1 win.h
-badd +66 scanner.h
-badd +74 scanner.cpp
-badd +19 windowManager.h
-badd +70 windowManager.cpp
+badd +83 scanner.h
+badd +35 scanner.cpp
+badd +14 windowManager.h
+badd +88 windowManager.cpp
 badd +7 config.txt
-badd +10 config.h
-badd +83 config.cpp
+badd +2 config.h
+badd +125 config.cpp
+badd +5 README.txt
 argglobal
 silent! argdel *
 $argadd broadcaster.cpp
@@ -91,20 +92,14 @@ $argadd stdafx.h
 $argadd targetver.h
 $argadd util.h
 $argadd win.h
-edit main.cpp
+edit scanner.h
 set splitbelow splitright
-wincmd _ | wincmd |
-split
-1wincmd k
-wincmd w
 set nosplitbelow
 set nosplitright
 wincmd t
 set winminheight=1 winheight=1 winminwidth=1 winwidth=1
-exe '1resize ' . ((&lines * 59 + 36) / 72)
-exe '2resize ' . ((&lines * 10 + 36) / 72)
 argglobal
-if bufexists('main.cpp') | buffer main.cpp | else | edit main.cpp | endif
+if bufexists('scanner.h') | buffer scanner.h | else | edit scanner.h | endif
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -215,140 +210,18 @@ setlocal textwidth=0
 setlocal thesaurus=
 setlocal noundofile
 setlocal undolevels=-123456
-setlocal winfixheight
+setlocal nowinfixheight
 setlocal nowinfixwidth
 set nowrap
 setlocal nowrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 154 - ((43 * winheight(0) + 29) / 59)
+let s:l = 84 - ((51 * winheight(0) + 35) / 70)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-154
-normal! 017|
-wincmd w
-argglobal
-enew
-setlocal keymap=
-setlocal noarabic
-setlocal autoindent
-setlocal backupcopy=
-setlocal balloonexpr=
-setlocal nobinary
-setlocal nobreakindent
-setlocal breakindentopt=
-setlocal bufhidden=wipe
-setlocal buflisted
-setlocal buftype=quickfix
-setlocal nocindent
-setlocal cinkeys=0{,0},0),:,0#,!^F,o,O,e
-setlocal cinoptions=
-setlocal cinwords=if,else,while,do,for,switch
-setlocal colorcolumn=
-setlocal comments=s1:/*,mb:*,ex:*/,://,b:#,:%,:XCOMM,n:>,fb:-
-setlocal commentstring=/*%s*/
-setlocal complete=.,w,b,u,t,i
-setlocal concealcursor=
-setlocal conceallevel=0
-setlocal completefunc=
-setlocal nocopyindent
-setlocal cryptmethod=
-setlocal nocursorbind
-setlocal nocursorcolumn
-setlocal nocursorline
-setlocal define=
-setlocal dictionary=
-setlocal nodiff
-setlocal equalprg=
-setlocal errorformat=
-setlocal noexpandtab
-if &filetype != 'qf'
-setlocal filetype=qf
-endif
-setlocal fixendofline
-setlocal foldcolumn=0
-setlocal foldenable
-setlocal foldexpr=0
-setlocal foldignore=#
-setlocal foldlevel=0
-setlocal foldmarker={{{,}}}
-setlocal foldmethod=manual
-setlocal foldminlines=1
-setlocal foldnestmax=20
-setlocal foldtext=foldtext()
-setlocal formatexpr=
-setlocal formatoptions=ql
-setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
-setlocal formatprg=
-setlocal grepprg=
-setlocal iminsert=0
-setlocal imsearch=-1
-setlocal include=
-setlocal includeexpr=
-setlocal indentexpr=
-setlocal indentkeys=0{,0},:,0#,!^F,o,O,e
-setlocal noinfercase
-setlocal iskeyword=@,48-57,_,192-255
-setlocal keywordprg=
-setlocal nolinebreak
-setlocal nolisp
-setlocal lispwords=
-setlocal nolist
-setlocal makeencoding=
-setlocal makeprg=
-setlocal matchpairs=(:),{:},[:]
-setlocal modeline
-setlocal nomodifiable
-setlocal nrformats=bin,octal,hex
-set number
-setlocal number
-setlocal numberwidth=4
-setlocal omnifunc=
-setlocal path=
-setlocal nopreserveindent
-setlocal nopreviewwindow
-setlocal quoteescape=\\
-setlocal noreadonly
-setlocal norelativenumber
-setlocal norightleft
-setlocal rightleftcmd=search
-setlocal noscrollbind
-setlocal shiftwidth=3
-setlocal noshortname
-setlocal signcolumn=auto
-setlocal smartindent
-setlocal softtabstop=3
-setlocal nospell
-setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
-setlocal spellfile=
-setlocal spelllang=en
-setlocal statusline=%t%{exists('w:quickfix_title')?\ '\ '.w:quickfix_title\ :\ ''}\ %=%-15(%l,%c%V%)\ %P
-setlocal suffixesadd=
-setlocal noswapfile
-setlocal synmaxcol=3000
-if &syntax != 'qf'
-setlocal syntax=qf
-endif
-setlocal tabstop=3
-setlocal tagcase=
-setlocal tags=
-setlocal termwinkey=
-setlocal termwinscroll=10000
-setlocal termwinsize=
-setlocal textwidth=0
-setlocal thesaurus=
-setlocal noundofile
-setlocal undolevels=-123456
-setlocal winfixheight
-setlocal nowinfixwidth
-set nowrap
-setlocal nowrap
-setlocal wrapmargin=0
-wincmd w
-2wincmd w
-exe '1resize ' . ((&lines * 59 + 36) / 72)
-exe '2resize ' . ((&lines * 10 + 36) / 72)
+84
+normal! 030|
 tabnext 1
 if exists('s:wipebuf') && s:wipebuf != bufnr('%')
   silent exe 'bwipe ' . s:wipebuf

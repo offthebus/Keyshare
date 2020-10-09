@@ -23,6 +23,26 @@ Scanner::~Scanner()
 //---------------------------------------------------------------------------
 BOOL CALLBACK Scanner::enumWindowsProc(HWND _hwnd, LPARAM lParam)
 {
+#define DEBUG_SCANNER 0
+
+#if DEBUG_SCANNER
+	char buf[256];
+	GetWindowText(_hwnd,buf,_countof(buf));
+	if (!strncmp(buf, "ECHO--CHARS",11)) {
+		Scanner& self = Scanner::getInstance();
+		if (!self.find(_hwnd)) {
+			Window* win = new Window(_hwnd, self.m_windows.size()+1);
+			if ( win->ordinal == 1 ) {
+				win->master = true;
+			}
+			self.lock();
+			self.m_windows.push_back(win);
+			self.unlock();
+			printf("*DEBUG* Window number %d: master flag: %s, handle 0x%08X, name %s, class %s\n",
+				win->ordinal, win->master?"TRUE":"FALSE",(unsigned int)win->hwnd, win->name, win->classname);
+		}
+	}
+#else
 	char buf[256];
 	GetWindowText(_hwnd,buf,_countof(buf));
 	if (!strncmp(buf, "World of Warcraft",17)) {
@@ -47,6 +67,7 @@ BOOL CALLBACK Scanner::enumWindowsProc(HWND _hwnd, LPARAM lParam)
 			}
 		}
 	}
+#endif
 	return TRUE;
 }
 //---------------------------------------------------------------------------

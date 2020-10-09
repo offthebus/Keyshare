@@ -1,13 +1,2 @@
-#---------------------------------------------------------------------------------------------------------
-# LAYOUT <window number> <value> 
-# Window identified by the 1st LAYOUT will be aligned to left edge of screen and occupy 100% screen height, value is % screen width.
-# the remaining windows are left aligned to the right edge of window 1, starting from top of screen in the order they are
-# encountered here. Value is % screen height.
-
-LAYOUT 1 70 # tank
-LAYOUT 5 50 # priest
-LAYOUT 2 17 # dps 1
-LAYOUT 3 17 # dps 2
-LAYOUT 4 16 # dps 3
-
-#----------------------------------------------------------------------------------------------------------
+BIND MMB F
+BIND MB4 T

@@ -128,7 +128,8 @@ int onHelp(Dispatcher::CMDLINE& cmdLine)
 			 "  h(elp)                    prints this info\n"
 			 "  q(uit)                    exits application\n");
 	printf("Hotkeys:\n");
-	printf("  `                         zooms slave under cursor, press again to unzoom\n");
+	printf("  `                         zooms slave under cursor, press again to unzoom\n"
+			 "  Ctrl+]                    toggle broadcasting\n");
 	printf("Mouse arrow keys:\n");
 	printf("  middle button             up arrow\n"
 			 "  Ctrl+middle button        down arrow\n"

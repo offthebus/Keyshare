@@ -3,7 +3,7 @@
 #include "util.h"
 
 const char* Config::s_identifiers[Config::C_NUM_IDENTIFIERS] = {
-	"LAYOUT"
+	"BIND"
 };
 
 //---------------------------------------------------------------------------
@@ -51,8 +51,8 @@ int Config::print(IDENTIFIER id, const VALUELIST* values, LPVOID param)
 	Config& self = Config::getInstance();
 	for (VALUELIST::const_iterator iter = values->begin(); iter != values->end(); ++iter) {
 		switch (id) {
-			case C_LAYOUT: {
-				printf("%s %d %d\n", self.identifierToString(id), iter->layout.windowNumber, iter->layout.value );
+			case C_BIND: {
+//				printf("%s %d %d\n", self.identifierToString(id), iter->layout.windowNumber, iter->layout.value );
 				break;
 			}
 		}
@@ -103,22 +103,20 @@ bool Config::loadScript(const char* filename)
 			return false;
 		}
 		switch (id) {
-			case C_LAYOUT: {
+			case C_BIND: {
 				if (values.size() != 3) {
-					printf("config.txt: config \"LAYOUT\" requires 2 fields, found %d\n", values.size()-1);
+					printf("config.txt: config \"BIND\" requires 2 fields, found %d\n", values.size()-1);
 					return false;
 				}
 				ConfigData data;
-				data.type = C_LAYOUT;
-				data.layout.windowNumber = atoi(values[1]);
-				data.layout.value = atoi(values[2]);
+				data.type = C_BIND;
 				VALUELIST* valueList;
-				CONFIG::iterator iter = m_config.find(C_LAYOUT);
+				CONFIG::iterator iter = m_config.find(C_BIND);
 				if (iter != m_config.end()) {
 					valueList = iter->second;
 				} else {
 					valueList = new VALUELIST;
-					m_config.insert(CONFIG::value_type(C_LAYOUT,valueList));
+					m_config.insert(CONFIG::value_type(C_BIND,valueList));
 				}
 				valueList->push_back(data);
 				break;

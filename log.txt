@@ -1,68 +1,240 @@
-main.cpp(117): Broadcasting mouse DOWN: cursor 872,443 client 854,402 factors   0.52,  0.33
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x00D001BA GET_X_LPARAM=442, GET_Y_LPARAM=208
-main.cpp(117): Broadcasting mouse UP: cursor 872,443 client 854,402 factors   0.52,  0.33
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x00D001BA GET_X_LPARAM=442, GET_Y_LPARAM=208
-main.cpp(117): Broadcasting mouse DOWN: cursor 835,654 client 817,613 factors   0.50,  0.50
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x013D01A7 GET_X_LPARAM=423, GET_Y_LPARAM=317
-main.cpp(117): Broadcasting mouse UP: cursor 835,654 client 817,613 factors   0.50,  0.50
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x013D01A7 GET_X_LPARAM=423, GET_Y_LPARAM=317
-main.cpp(117): Broadcasting mouse DOWN: cursor 1253,588 client 1235,547 factors   0.76,  0.45
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x011B027F GET_X_LPARAM=639, GET_Y_LPARAM=283
-main.cpp(117): Broadcasting mouse UP: cursor 1253,588 client 1235,547 factors   0.76,  0.45
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x011B027F GET_X_LPARAM=639, GET_Y_LPARAM=283
-main.cpp(117): Broadcasting mouse DOWN: cursor 1135,623 client 1117,582 factors   0.68,  0.47
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x012D0242 GET_X_LPARAM=578, GET_Y_LPARAM=301
-main.cpp(117): Broadcasting mouse UP: cursor 1135,623 client 1117,582 factors   0.68,  0.47
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x012D0242 GET_X_LPARAM=578, GET_Y_LPARAM=301
-main.cpp(117): Broadcasting mouse DOWN: cursor 1056,699 client 1038,658 factors   0.64,  0.54
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x01540219 GET_X_LPARAM=537, GET_Y_LPARAM=340
-main.cpp(117): Broadcasting mouse UP: cursor 1056,699 client 1038,658 factors   0.64,  0.54
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x01540219 GET_X_LPARAM=537, GET_Y_LPARAM=340
-main.cpp(117): Broadcasting mouse DOWN: cursor 955,746 client 937,705 factors   0.57,  0.58
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x016D01E5 GET_X_LPARAM=485, GET_Y_LPARAM=365
-main.cpp(117): Broadcasting mouse UP: cursor 955,746 client 937,705 factors   0.57,  0.58
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x016D01E5 GET_X_LPARAM=485, GET_Y_LPARAM=365
-main.cpp(117): Broadcasting mouse DOWN: cursor 856,530 client 838,489 factors   0.51,  0.40
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x00FD01B1 GET_X_LPARAM=433, GET_Y_LPARAM=253
-main.cpp(117): Broadcasting mouse UP: cursor 856,530 client 838,489 factors   0.51,  0.40
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x00FD01B1 GET_X_LPARAM=433, GET_Y_LPARAM=253
-main.cpp(117): Broadcasting mouse DOWN: cursor 835,654 client 817,613 factors   0.50,  0.50
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x013D01A7 GET_X_LPARAM=423, GET_Y_LPARAM=317
-main.cpp(117): Broadcasting mouse UP: cursor 810,1060 client 792,1019 factors   0.48,  0.83
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x020F019A GET_X_LPARAM=410, GET_Y_LPARAM=527
-main.cpp(117): Broadcasting mouse DOWN: cursor 1200,575 client 1182,534 factors   0.72,  0.44
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x01140263 GET_X_LPARAM=611, GET_Y_LPARAM=276
-main.cpp(117): Broadcasting mouse UP: cursor 1200,575 client 1182,534 factors   0.72,  0.44
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x01140263 GET_X_LPARAM=611, GET_Y_LPARAM=276
-main.cpp(117): Broadcasting mouse DOWN: cursor 1065,637 client 1047,596 factors   0.64,  0.49
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x0134021E GET_X_LPARAM=542, GET_Y_LPARAM=308
-main.cpp(117): Broadcasting mouse UP: cursor 1065,637 client 1047,596 factors   0.64,  0.49
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x0134021E GET_X_LPARAM=542, GET_Y_LPARAM=308
-main.cpp(117): Broadcasting mouse DOWN: cursor 1455,363 client 1437,322 factors   0.88,  0.26
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x00A602E8 GET_X_LPARAM=744, GET_Y_LPARAM=166
-main.cpp(117): Broadcasting mouse UP: cursor 1455,363 client 1437,322 factors   0.88,  0.26
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x00A602E8 GET_X_LPARAM=744, GET_Y_LPARAM=166
-main.cpp(117): Broadcasting mouse DOWN: cursor 887,520 client 869,479 factors   0.53,  0.39
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x00F801C1 GET_X_LPARAM=449, GET_Y_LPARAM=248
-main.cpp(117): Broadcasting mouse UP: cursor 887,520 client 869,479 factors   0.53,  0.39
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x00F801C1 GET_X_LPARAM=449, GET_Y_LPARAM=248
-main.cpp(117): Broadcasting mouse DOWN: cursor 835,654 client 817,613 factors   0.50,  0.50
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x013D01A7 GET_X_LPARAM=423, GET_Y_LPARAM=317
-main.cpp(117): Broadcasting mouse UP: cursor 799,1145 client 781,1104 factors   0.48,  0.90
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x023B0194 GET_X_LPARAM=404, GET_Y_LPARAM=571
-main.cpp(117): Broadcasting mouse DOWN: cursor 819,1000 client 801,959 factors   0.49,  0.78
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x01F0019E GET_X_LPARAM=414, GET_Y_LPARAM=496
-main.cpp(117): Broadcasting mouse UP: cursor 835,654 client 817,613 factors   0.50,  0.50
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x013D01A7 GET_X_LPARAM=423, GET_Y_LPARAM=317
-main.cpp(117): Broadcasting mouse DOWN: cursor 835,654 client 817,613 factors   0.50,  0.50
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x013D01A7 GET_X_LPARAM=423, GET_Y_LPARAM=317
-main.cpp(117): Broadcasting mouse UP: cursor 915,273 client 897,232 factors   0.55,  0.19
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x007801D0 GET_X_LPARAM=464, GET_Y_LPARAM=120
-main.cpp(117): Broadcasting mouse DOWN: cursor 365,441 client 347,400 factors   0.21,  0.33
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x00CF00B3 GET_X_LPARAM=179, GET_Y_LPARAM=207
-main.cpp(117): Broadcasting mouse UP: cursor 365,441 client 347,400 factors   0.21,  0.33
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x00CF00B3 GET_X_LPARAM=179, GET_Y_LPARAM=207
-main.cpp(117): Broadcasting mouse DOWN: cursor 1311,627 client 1293,586 factors   0.79,  0.48
-main.cpp(126):   To Slave: WM_RBUTTONDOWN lparam=0x012F029D GET_X_LPARAM=669, GET_Y_LPARAM=303
-main.cpp(117): Broadcasting mouse UP: cursor 1311,627 client 1293,586 factors   0.79,  0.48
-main.cpp(140):   To Slave: WM_RBUTTONUP lparam=0x012F029D GET_X_LPARAM=669, GET_Y_LPARAM=303
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 2
+windowManager.cpp(109): UNZOOM 2
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 4
+windowManager.cpp(109): UNZOOM 4
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
+windowManager.cpp(97): ZOOM 3
+windowManager.cpp(109): UNZOOM 3
+
+windowManager.cpp(97): ZOOM 5
+windowManager.cpp(109): UNZOOM 5
+
